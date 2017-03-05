@@ -12902,6 +12902,8 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <text x="170.942" y="11.43" size="2.54" layer="94">N. Seidle</text>
 <text x="239.014" y="7.112" size="2.54" layer="94">X10</text>
 <text x="80.264" y="141.478" size="1.27" layer="97">Using servo lib destroys analogWrite() capabilities on 9/10. Put servo on 9.</text>
+<text x="193.04" y="175.26" size="1.27" layer="91">Add start/stop button</text>
+<text x="190.5" y="172.72" size="1.27" layer="91">Add Display connection</text>
 <text x="27.94" y="22.86" size="1.778" layer="97">Dial Zero</text>
 <text x="203.2" y="93.98" size="1.778" layer="97">Display</text>
 </plain>

@@ -1065,29 +1065,23 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <class number="1" name="power" width="0.2032" drill="0">
 </class>
 </classes>
-<designrules name="SparkFun-2-layer-STANDARD">
-<description language="en">&lt;b&gt;SparkFun 2 Layer Design Rule Checks - STANDARD/TIGHT/FAB-LIMIT&lt;/b&gt;
+<designrules name="SparkFun-2-layer *">
+<description language="en">&lt;b&gt;EAGLE Design Rules&lt;/b&gt;
 &lt;p&gt;
-These rules have been curated by SparkFuns DFM commitee. After doing much research, communicating with our multiple fab houses, and getting quotes of various designs, we have compiled three DRU files. 
-&lt;p&gt;
-&lt;b&gt;STANDARD:&lt;/b&gt; This is more of a &quot;best case scenario&quot; set of limitations. If your design has the space, and/or you have the time to work within these parameters, please do. Larger trace width and clearance makes for easier visual inspection of the PCB while troubleshooting (useful in production and to the end user). It also allows for better ability to hack a trace (if you are crazy enough to scrape away the mask and solder to a trace). Another thing to keep in mind is that more metal is just more robust. 
-&lt;p&gt;
-&lt;b&gt;TIGHT:&lt;/b&gt; This is where cost comes into play. We have found that most fab houses begin to add extra charges when you go smaller than these specs. In some cases, going to less than 15 mil trace can increase the cost by 10%. (This is why we have set the min drill on this DRU to 15 mil) Same story for traces thinner than 7 mil. To avoid those extra charges, then stay within the rules of this DRU.
-&lt;p&gt;
-&lt;b&gt;FAB-LIMIT:&lt;/b&gt; These set of rules are at the very limit of most fab houses capabilities. You will pay more for these specs, and it should be used on designs that have a darned good reason to need 4 mil vias and 4 mil traces.
-&lt;p&gt;
-**NOTE Clearance, Distance, Sizes, and Restring are all set to different limits in each of these three DRU files. Please compare the files within the CAM job editor window of eagle to see all the numbers.
-&lt;p&gt;
-***NOTE, Please set your Net Classes to default (0mil for all settings), so that it won't effect the DRC when you run it with these settings.</description>
+The default Design Rules have been set to cover
+a wide range of applications. Your particular design
+may have different requirements, so please make the
+necessary adjustments and save your customized
+design rules under a new name.</description>
 <param name="layerSetup" value="(1*16)"/>
 <param name="mtCopper" value="0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm"/>
 <param name="mtIsolate" value="1.5mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm"/>
-<param name="mdWireWire" value="10mil"/>
+<param name="mdWireWire" value="8mil"/>
 <param name="mdWirePad" value="8mil"/>
-<param name="mdWireVia" value="10mil"/>
+<param name="mdWireVia" value="8mil"/>
 <param name="mdPadPad" value="8mil"/>
-<param name="mdPadVia" value="10mil"/>
-<param name="mdViaVia" value="10mil"/>
+<param name="mdPadVia" value="8mil"/>
+<param name="mdViaVia" value="8mil"/>
 <param name="mdSmdPad" value="8mil"/>
 <param name="mdSmdVia" value="8mil"/>
 <param name="mdSmdSmd" value="8mil"/>
@@ -1096,8 +1090,8 @@ These rules have been curated by SparkFuns DFM commitee. After doing much resear
 <param name="mdCopperDimension" value="8mil"/>
 <param name="mdDrill" value="8mil"/>
 <param name="mdSmdStop" value="0mil"/>
-<param name="msWidth" value="10mil"/>
-<param name="msDrill" value="20mil"/>
+<param name="msWidth" value="7mil"/>
+<param name="msDrill" value="15mil"/>
 <param name="msMicroVia" value="9.99mm"/>
 <param name="msBlindViaRatio" value="0.5"/>
 <param name="rvPadTop" value="0.25"/>
@@ -1107,11 +1101,11 @@ These rules have been curated by SparkFuns DFM commitee. After doing much resear
 <param name="rvViaInner" value="0.25"/>
 <param name="rvMicroViaOuter" value="0.25"/>
 <param name="rvMicroViaInner" value="0.25"/>
-<param name="rlMinPadTop" value="10mil"/>
+<param name="rlMinPadTop" value="12mil"/>
 <param name="rlMaxPadTop" value="20mil"/>
 <param name="rlMinPadInner" value="10mil"/>
 <param name="rlMaxPadInner" value="20mil"/>
-<param name="rlMinPadBottom" value="10mil"/>
+<param name="rlMinPadBottom" value="12mil"/>
 <param name="rlMaxPadBottom" value="20mil"/>
 <param name="rlMinViaOuter" value="10mil"/>
 <param name="rlMaxViaOuter" value="20mil"/>
@@ -1132,7 +1126,7 @@ These rules have been curated by SparkFuns DFM commitee. After doing much resear
 <param name="mlMaxStopFrame" value="4mil"/>
 <param name="mlMinCreamFrame" value="0mil"/>
 <param name="mlMaxCreamFrame" value="0mil"/>
-<param name="mlViaStopLimit" value="25mil"/>
+<param name="mlViaStopLimit" value="20mil"/>
 <param name="srRoundness" value="0"/>
 <param name="srMinRoundness" value="0mil"/>
 <param name="srMaxRoundness" value="0mil"/>
@@ -1543,12 +1537,14 @@ These rules have been curated by SparkFuns DFM commitee. After doing much resear
 </signal>
 <signal name="BUTTON">
 <contactref element="J9" pad="2"/>
+<contactref element="U1" pad="D12"/>
 <wire x1="37.83" y1="12.15" x2="37.83" y2="21.86" width="0.254" layer="1"/>
 <wire x1="37.83" y1="21.86" x2="34.29" y2="25.4" width="0.254" layer="1"/>
-<wire x1="34.29" y1="25.4" x2="34.29" y2="45.72" width="0.254" layer="1"/>
-<contactref element="U1" pad="D7"/>
-<wire x1="36.83" y1="50.8" x2="36.83" y2="48.26" width="0.254" layer="1"/>
-<wire x1="36.83" y1="48.26" x2="34.29" y2="45.72" width="0.254" layer="1"/>
+<wire x1="34.29" y1="25.4" x2="34.29" y2="44.45" width="0.254" layer="1"/>
+<wire x1="34.29" y1="44.45" x2="30.48" y2="48.26" width="0.254" layer="1"/>
+<wire x1="30.48" y1="48.26" x2="24.13" y2="48.26" width="0.254" layer="1"/>
+<wire x1="24.13" y1="48.26" x2="22.86" y2="49.53" width="0.254" layer="1"/>
+<wire x1="22.86" y1="49.53" x2="22.86" y2="50.8" width="0.254" layer="1"/>
 </signal>
 </signals>
 <errors>
