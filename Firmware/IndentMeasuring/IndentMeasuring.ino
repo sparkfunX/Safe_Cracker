@@ -9,9 +9,7 @@
   Motor current turning dial, speed = 255, ~350 to 560mA
   Motor current turning dial, speed = 50, = ~60 to 120mA
 
-
   To write:
-    int measureIndents()
     record combinations to eeprom
 
   To test:
@@ -22,49 +20,7 @@
     setHome(void) - Detects reed switch and clears steps to zero
     resetDial(void) - Resets discs to a ready to set (turn CW to set disc C)
     int readMotorCurrent(void)
-
-  3/5/17
-  Widths:
-  [0] = 491
-  [1] = 472
-  [2] = 514
-  [3] = 471
-  [4] = 492
-  [5] = 480
-  [6] = 486
-  [7] = 481
-  [8] = 466
-  [9] = 463
-  [10] = 472
-  [11] = 467
-
-  Widths:
-  [0] = 519
-  [1] = 522
-  [2] = 541
-  [3] = 522
-  [4] = 533
-  [5] = 528
-  [6] = 541
-  [7] = 539
-  [8] = 528
-  [9] = 525
-  [10] = 530
-  [11] = 530
-
-  Widths:
-  [0] = 542
-  [1] = 529
-  [2] = 555
-  [3] = 532
-  [4] = 544
-  [5] = 539
-  [6] = 547
-  [7] = 551
-  [8] = 530
-  [9] = 522
-  [10] = 530
-  [11] = 535
+    int measureIndents()
 
 */
 
@@ -88,14 +44,17 @@ const byte displaySerial = A4;
 #include <Servo.h>
 Servo handleServo;
 
+//Servo values were found using the testServo() function while the
+//cracker was deattached from the safe
 //Increase in numbers cause handle to go down
 //Resting is 5, which is analog read 133/106
 //Good pressure is 50, analog 203
 //Open is 75 and analog greater than 254
 //Max open is 175, analog around 450
-const int servoRestingPosition = 5; //Found by trial/error once apparatus is attached to handle
-const int servoPressurePosition = 40; //Found by trial/error
-const int servoTryPosition = 60; //Found by trial/error
+const byte servoRestingPosition = 5;
+const byte servoPressurePosition = 40;
+const byte servoTryPosition = 70;
+const byte handleOpenPosition = 250; //Analog value. Door handle is in the open position (45 degrees down) if servo got this far.
 
 #define CCW 0
 #define CW 1
@@ -103,23 +62,27 @@ const int servoTryPosition = 60; //Found by trial/error
 volatile int steps = 0; //Keeps track of encoder counts. 8400 per revolution so this can get big.
 boolean direction = CW; //steps goes up or down based on direction
 boolean previousDirection = CW; //Detects when direction changes to add some steps for encoder slack
-const byte homeOffset = 1; //Where does the dial actually land after doing a goHome calibration
+const byte homeOffset = 0; //Where does the dial actually land after doing a goHome calibration
 
-//DiscA goes in CW fashion during testing. 12 indentations, each 8.3 numbers wide.
+//DiscA goes in CCW fashion during testing. 12 indentations, each 8.3 numbers wide.
 //Each combination progresses at 30 numbers (12*8.3=99.6)
 //Center of first indent (98 to 1 inclusive) is 0
 #define DISCA_START 0
 
-//DiscB goes in CCW fashion during testing. Increments of 3.
-#define DISCB_START 0
+//DiscB goes in CW fashion during testing. Increments of 3.
+#define DISCB_START 98
 
-//DiscC goes in CW fashion during testing. First valid number is 97.
-#define DISCC_START 97
+//DiscC goes in CCW fashion during testing. First valid number is 3.
+#define DISCC_START 3
 
 //These are the combination numbers we are attempting
 int discA = DISCA_START;
 int discB = DISCB_START;
 int discC = DISCC_START;
+
+int testNumber = 0; //Keeps track of the 12 indent tests
+
+long startTime;
 
 void setup()
 {
@@ -161,53 +124,30 @@ void setup()
 
 void loop()
 {
-  int randomDial = 0;
-
   Serial.println();
   messagePause("Press key to start");
 
   //testServo(); //Infinite loop to test servo
-
   //measureDiscA(); //Try to measure the idents in disc A
+  //positionTesting(); //Pick random places on dial and prove we can go to them
 
-  //turnCW();
-  //randomDial = random(0, 100);
-  //setDial(randomDial, false);
+  startTime = millis();
+  setDiscsToStart(); //Put discs into starting position
 
-  positionTesting();
-  
-
-
-  /*  turnCW();
-    randomDial = random(0, 100);
-    setDial(randomDial, false);
-    Serial.print("Dial is at: ");
-    Serial.println(convertEncoderToDial(steps));
-    messagePause("");
-  */
-
-
-
-  //setDiscsToStart(); //Put discs into starting position
-
-  /*while (1)
-    {
+  while (1)
+  {
     nextCombination(); //Try the next combo!
-    while (!Serial.available()); //Wait for user input
-    Serial.read(); //Throw away character
-    }*/
 
-  //Try to open the door
-  /*boolean doorOpen = tryHandle();
-    if(doorOpen == true)
+    if(Serial.available())
     {
-    announceSuccess();
-    Serial.println("Holy smokes!");
+      byte incoming = Serial.read();
+      if(incoming == 'p')
+      {
+        Serial.println("Pausing");
+        while(!Serial.available()) delay(1);
+      }
     }
-    else
-    {
-    Serial.println("Failed: ");
-    }*/
+  }
 }
 
 //Set the discs to their starting positions
@@ -220,41 +160,40 @@ void setDiscsToStart()
   resetDial(); //Clear out everything
   delay(1000);
 
-  return;
-
   //Set discs to their starting position
-  turnCW();
+  turnCCW();
   int discCIsAt = setDial(DISCC_START, false);
   Serial.print("DiscC is at: ");
   Serial.println(discCIsAt);
 
-  turnCCW();
+  turnCW();
   //Turn past disc B one extra spin
   int discBIsAt = setDial(DISCB_START, true);
   Serial.print("DiscB is at: ");
   Serial.println(discBIsAt);
 
-  turnCW();
+  turnCCW();
   int discAIsAt = setDial(DISCA_START, false);
   Serial.print("DiscA is at: ");
   Serial.println(discAIsAt);
 
-  Serial.println("Discs at starting positions");
+  Serial.println("Discs are at starting positions");
 }
 
 //Given the current state of discs, advance to the next numbers
 void nextCombination()
 {
-  discA = lookupIndentValues(((discA + 2) / 8) + 1); //There are 12 indentations. Disc A changes by 8.3.
-  if (discA > 99)
+  testNumber++;
+  if (testNumber == 12) //Idents are exhuasted, time to adjust discB
   {
-    discA = DISCA_START; //Reset discA
-    discB += 3; //Disc B changes by 3
-    if (discB > 99)
+    testNumber = 0;
+    discB -= 3; //Disc B changes by 3
+    if (discB < 0)
     {
       Serial.println("Freeze");
       while (1); //Freeze
 
+      discA = DISCA_START; //Reset discA
       discB = DISCB_START; //Reset discB
       discC += 3; //DiscC changes by 3
       if (discC > 99)
@@ -265,20 +204,49 @@ void nextCombination()
       }
       else
       {
-        //Adjust discC to this new value
-
         //Perhaps do a resetDial() here and re-set discs
+
+        //Adjust discC to this new value
+        turnCCW();
+        int discCIsAt = setDial(discC, false);
+        Serial.print("DiscC is at: ");
+        Serial.println(discCIsAt);
+
+        //Adjust discB to this new value
+        turnCW();
+        int discBIsAt = setDial(discB, true);
+        Serial.print("DiscB is at: ");
+        Serial.println(discBIsAt);
+
+        turnCCW();
+        int discAIsAt = setDial(discA, false);
+        Serial.print("DiscA is at: ");
+        Serial.println(discAIsAt);
       }
     }
     else
     {
+      discA = getNextIndent(discB); //Get the first indent after B
+
+      long delta = millis() - startTime;
+      startTime = millis();
+      Serial.print("Time required to run discA: ");
+      Serial.println(delta);
+
       //Adjust discB to this new value
-      turnCCW();
+      turnCW();
+
+      //Turn 50 dial ticks CW away from here
+      int currentDial = convertEncoderToDial(steps);
+      currentDial -= 50;
+      if (currentDial < 0) currentDial += 100;
+      setDial(currentDial, false); 
+
       int discBIsAt = setDial(discB, false);
       Serial.print("DiscB is at: ");
       Serial.println(discBIsAt);
 
-      turnCW();
+      turnCCW();
       int discAIsAt = setDial(discA, false);
       Serial.print("DiscA is at: ");
       Serial.println(discAIsAt);
@@ -286,8 +254,10 @@ void nextCombination()
   }
   else
   {
+    discA = getNextIndent(discA);
+
     //Adjust discA to this new value
-    turnCW();
+    turnCCW();
     int discAIsAt = setDial(discA, false);
     Serial.print("DiscA is at: ");
     Serial.println(discAIsAt);
@@ -311,4 +281,18 @@ void nextCombination()
   }
 }
 
+//Given a spot on the dial, what is the next available indent in the CCW direction
+//Takes care of wrap conditions
+//Returns the dial position of the next ident
+int getNextIndent(int currentDialPosition)
+{
+  for (int x = 0 ; x < 12 ; x++)
+  {
+    byte nextDialPosition = lookupIndentValues(x);
+    if (nextDialPosition > currentDialPosition) return (nextDialPosition);
+  }
+
+  //If we never found a next dial value then we have wrap around situation
+  return (lookupIndentValues(0));
+}
 

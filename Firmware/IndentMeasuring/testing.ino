@@ -72,7 +72,7 @@ void positionTesting()
     messagePause("Goto next spot");
 
     randomDial = random(0, 100);
-    turnCW();
+    turnCCW();
     setDial(randomDial, false);
 
     Serial.print("Dial is at: ");
@@ -81,7 +81,7 @@ void positionTesting()
     messagePause("Goto next spot");
 
     randomDial = random(0, 100);
-    turnCCW();
+    turnCW();
     setDial(randomDial, false);
   }
 

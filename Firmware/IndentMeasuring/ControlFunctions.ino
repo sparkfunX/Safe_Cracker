@@ -9,21 +9,23 @@ int gotoStep(int stepGoal, boolean addAFullRotation)
   int fineSpeed = 50; //Less than 50 may not have enough torque
   int fineWindow = 32; //One we are within this amount, stop searching
 
+  //Because we're switching directions we need to add extra steps to take
+  //up the slack in the encoder
+  //84 is too far, 0 is too short, 42 is pretty good
+  int adjustment = 84 * 3; //This will
   if (direction == CW && previousDirection == CCW)
   {
-    //Because we're switching directions we need to add extra steps to take
-    //up the slack in the encoder
-    steps += 42;
-    if(steps > 8400) steps -= 8400;
-    previousDirection = CCW;
-  }
-  else if(direction == CCW && previousDirection == CW)
-  {
-    steps -= 42; //84 is too far, 0 is too short, 42 is pretty good
-    if (steps < 0) steps += 8400;
+    steps += adjustment;
+    if (stepGoal > 8400) stepGoal -= 8400;
     previousDirection = CW;
   }
-  
+  else if (direction == CCW && previousDirection == CW)
+  {
+    steps -= adjustment;
+    if (stepGoal < 0) stepGoal += 8400;
+    previousDirection = CCW;
+  }
+
   setMotorSpeed(coarseSpeed); //Go!
   //while (stepsRequired(steps, stepGoal) > coarseWindow) delayMicroseconds(10); //Spin until coarse window is closed
   while (stepsRequired(steps, stepGoal) > coarseWindow) ; //Spin until coarse window is closed
@@ -46,12 +48,15 @@ int gotoStep(int stepGoal, boolean addAFullRotation)
 
   int delta = steps - stepGoal;
 
+  if (direction == CW) Serial.print("CW ");
+  else Serial.print("CCW ");
   Serial.print("stepGoal: ");
   Serial.print(stepGoal);
   Serial.print(" / Final steps: ");
   Serial.print(steps);
   Serial.print(" / delta: ");
-  Serial.println(delta);
+  Serial.print(delta);
+  Serial.println();
 
   return (delta);
 }
@@ -86,8 +91,8 @@ int stepsRequired(int currentSteps, int goal)
 //Returns the dial value we actually ended on
 int setDial(int dialValue, boolean extraSpin)
 {
-  Serial.print("Want dialValue: ");
-  Serial.println(dialValue);
+  //Serial.print("Want dialValue: ");
+  //Serial.println(dialValue);
 
   int encoderValue = convertDialToEncoder(dialValue); //Get encoder value
   //Serial.print("Want encoderValue: ");
@@ -98,8 +103,8 @@ int setDial(int dialValue, boolean extraSpin)
   //Serial.println(steps);
 
   int actualDialValue = convertEncoderToDial(steps); //Convert back to dial values
-  Serial.print("After movement, dialvalue: ");
-  Serial.println(actualDialValue);
+  //Serial.print("After movement, dialvalue: ");
+  //Serial.println(actualDialValue);
 
   return (actualDialValue);
 }
@@ -108,7 +113,7 @@ int setDial(int dialValue, boolean extraSpin)
 void goHome()
 {
   Serial.println("Going home");
-  
+
   byte fastSearch = 255; //Speed at which we locate photogate
   byte slowSearch = 50;
 
@@ -142,10 +147,10 @@ void goHome()
   setMotorSpeed(0);
   delay(250); //Wait for motor to stop
 
-  turnCW();
-
   //Adjust steps with the real-world offset
   steps = (84 * homeOffset); //84 * the number the dial sits on when 'home'
+
+  previousDirection = CCW; //Last adjustment to dial was in CCW direction
 }
 
 //Given a dial value, covert to an encoder value (0 to 8400)
@@ -180,10 +185,10 @@ int convertEncoderToDial(int encoderValue)
 }
 
 //Reset the dial
-//Turn CW, past zero, then continue until we return to zero
+//Turn CCW, past zero, then continue until we return to zero
 void resetDial()
 {
-  turnCW();
+  turnCCW();
 
   //If we're too close to zero, add 50
   if (convertEncoderToDial(steps) > 97 || convertEncoderToDial(steps) < 4)
@@ -191,13 +196,9 @@ void resetDial()
     Serial.println("We're too close to zero");
     setDial(50, false); //Advance to 50 dial ticks away from here
   }
-  
-  int dialValue = setDial(0, true); //Turn to zero with an extra spin
+  previousDirection = CCW;
 
-  Serial.print("resetDial ended at: ");
-  Serial.println(dialValue);
-  Serial.print("steps: ");
-  Serial.println(steps);
+  setDial(0, true); //Turn to zero with an extra spin
 }
 
 //Tells the servo to pull down on the handle
@@ -210,22 +211,21 @@ boolean tryHandle()
   //Attempt to pull down on handle
   handleServo.write(servoTryPosition);
 
-  //TODO change as needed
-  delay(300); //Wait for servo to move, but don't let it stall for too long and burn out
+  delay(500); //Wait for servo to move, but don't let it stall for too long and burn out
 
   //Check if we're there
   int handlePosition = analogRead(servoPosition);
-
-  if (handlePosition > 500) //TODO change as needed
+  if (handlePosition > handleOpenPosition)
   {
     //Holy smokes we're there!
-    handleServo.detach(); //Turn off servo
     return (true);
   }
 
   //Ok, we failed
   //Return to resting position
   handleServo.write(servoRestingPosition);
+
+  delay(500); //Wait for servo to return to reseting position
 
   return (false);
 }
@@ -337,7 +337,7 @@ int lookupIndentValues(int indentNumber)
     case 9: return (74); //73-76
     case 10: return (83); //81-84
     case 11: return (91); //90-93
-    case 12: return (100); //End
+    case 12: return (-1); //Not valid
   }
 }
 
