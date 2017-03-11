@@ -4,51 +4,41 @@
 //Adding a full rotation will add a 360 degree full rotation
 int gotoStep(int stepGoal, boolean addAFullRotation)
 {
-  //Serial.print("Going to: ");
-  //Serial.println(stepGoal);
+  int coarseSpeed = 200; //Speed at which we get to coarse window. 150, 200 works. 210, 230 fails
+  int coarseWindow = 1000; //Once we are within this amount, switch to fine adjustment
+  int fineSpeed = 50; //Less than 50 may not have enough torque
+  int fineWindow = 32; //One we are within this amount, stop searching
 
-  int coarseWindow = 1000;
-  int fineWindow = 32;
-
-  int diff = stepsRequired(steps, stepGoal);
-  Serial.print("steps: ");
-  Serial.println(steps);
-  Serial.print("stepgoal: ");
-  Serial.println(stepGoal);
-  Serial.print("1diff: ");
-  Serial.println(diff);
-  messagePause("");
-
-  setMotorSpeed(150); //Go!
-  //  while (stepsRequired(steps, stepGoal) > coarseWindow) delayMicroseconds(10); //Spin until coarse window is closed
-  while (1)
+  if (direction == CW && previousDirection == CCW)
   {
-    int diff = stepsRequired(steps, stepGoal);
-    Serial.print("diff: ");
-    Serial.println(diff);
-    if (diff < coarseWindow) break;
-    delayMicroseconds(10); //Spin until coarse window is closed
+    //Because we're switching directions we need to add extra steps to take
+    //up the slack in the encoder
+    steps += 42;
+    if(steps > 8400) steps -= 8400;
+    previousDirection = CCW;
   }
+  else if(direction == CCW && previousDirection == CW)
+  {
+    steps -= 42; //84 is too far, 0 is too short, 42 is pretty good
+    if (steps < 0) steps += 8400;
+    previousDirection = CW;
+  }
+  
+  setMotorSpeed(coarseSpeed); //Go!
+  //while (stepsRequired(steps, stepGoal) > coarseWindow) delayMicroseconds(10); //Spin until coarse window is closed
+  while (stepsRequired(steps, stepGoal) > coarseWindow) ; //Spin until coarse window is closed
 
   //After we have gotten close to the first coarse window, proceed past the goal, then proceed to the goal
   if (addAFullRotation == true)
   {
     delay(500); //This should spin us past the goal
-    //Now proceed to the goal
     while (stepsRequired(steps, stepGoal) > coarseWindow) delayMicroseconds(10); //Spin until coarse window is closed
   }
 
-  setMotorSpeed(50); //Slowly approach
+  setMotorSpeed(fineSpeed); //Slowly approach
 
-  //while (stepsRequired(steps, stepGoal) > fineWindow) delayMicroseconds(10); //Spin until fine window is closed
-  while (1)
-  {
-    int diff = stepsRequired(steps, stepGoal);
-    Serial.print("fine diff: ");
-    Serial.println(diff);
-    if (diff < fineWindow) break;
-    delayMicroseconds(10); //Spin until coarse window is closed
-  }
+  //  while (stepsRequired(steps, stepGoal) > fineWindow) delayMicroseconds(10); //Spin until fine window is closed
+  while (stepsRequired(steps, stepGoal) > fineWindow) ; //Spin until fine window is closed
 
   setMotorSpeed(0); //Stop
 
@@ -63,9 +53,6 @@ int gotoStep(int stepGoal, boolean addAFullRotation)
   Serial.print(" / delta: ");
   Serial.println(delta);
 
-  //Serial.print("Arrived: ");
-  //Serial.println(steps);
-
   return (delta);
 }
 
@@ -74,11 +61,6 @@ int gotoStep(int stepGoal, boolean addAFullRotation)
 //Corrects for 8400 roll over
 int stepsRequired(int currentSteps, int goal)
 {
-  /*Serial.print("currentSteps: ");
-    Serial.print(currentSteps);
-    Serial.print(" / goal: ");
-    Serial.println(goal);*/
-
   if (direction == CW)
   {
     if (currentSteps >= goal) return (currentSteps - goal);
@@ -108,12 +90,12 @@ int setDial(int dialValue, boolean extraSpin)
   Serial.println(dialValue);
 
   int encoderValue = convertDialToEncoder(dialValue); //Get encoder value
-  Serial.print("Want encoderValue: ");
-  Serial.println(encoderValue);
+  //Serial.print("Want encoderValue: ");
+  //Serial.println(encoderValue);
 
   gotoStep(encoderValue, extraSpin); //Goto that encoder value
-  Serial.print("After movement, steps: ");
-  Serial.println(steps);
+  //Serial.print("After movement, steps: ");
+  //Serial.println(steps);
 
   int actualDialValue = convertEncoderToDial(steps); //Convert back to dial values
   Serial.print("After movement, dialvalue: ");
@@ -122,36 +104,48 @@ int setDial(int dialValue, boolean extraSpin)
   return (actualDialValue);
 }
 
-//Spin until we detect both sides of reed switch
-//Split the difference, then rotate back to that new center
+//Spin until we detect the photo gate trigger
 void goHome()
 {
-  const byte searchSpeed = 50; //50 to 255 is allowed
+  Serial.println("Going home");
+  
+  byte fastSearch = 255; //Speed at which we locate photogate
+  byte slowSearch = 50;
 
   turnCW();
 
   //Begin spinning
-  setMotorSpeed(searchSpeed);
+  setMotorSpeed(fastSearch);
 
-  //Sometimes when we start we're already near the magnet, spin until we are out
-  if (magnetDetected() == true)
+  //If the photogate is already detected spin until we are out
+  if (flagDetected() == true)
   {
-    Serial.println("We're too close to the magnet");
+    Serial.println("We're too close to the photogate");
     int currentDial = convertEncoderToDial(steps);
     currentDial += 50;
     if (currentDial > 100) currentDial -= 100;
     setDial(currentDial, false); //Advance to 50 dial ticks away from here
 
-    setMotorSpeed(searchSpeed);
+    setMotorSpeed(fastSearch);
   }
 
-  while (magnetDetected() == false) delayMicroseconds(1);
+  while (flagDetected() == false) delayMicroseconds(1); //Spin freely
+
+  //Ok, we just zipped past the gate. Stop and spin slowly backward
+  setMotorSpeed(0);
+  delay(250); //Wait for motor to stop spinning
+  turnCCW();
+
+  setMotorSpeed(slowSearch);
+  while (flagDetected() == false) delayMicroseconds(1); //Find flag
 
   setMotorSpeed(0);
-  delay(500); //Wait for motor to stop
+  delay(250); //Wait for motor to stop
+
+  turnCW();
 
   //Adjust steps with the real-world offset
-  steps = (84 * 0); //84 * the number the dial sits on when 'home'
+  steps = (84 * homeOffset); //84 * the number the dial sits on when 'home'
 }
 
 //Given a dial value, covert to an encoder value (0 to 8400)
@@ -186,11 +180,19 @@ int convertEncoderToDial(int encoderValue)
 }
 
 //Reset the dial
+//Turn CW, past zero, then continue until we return to zero
 void resetDial()
 {
-  //Turn CW, past zero, then return to zero
   turnCW();
-  int dialValue = setDial(0, false); //Turn to zero with an extra spin
+
+  //If we're too close to zero, add 50
+  if (convertEncoderToDial(steps) > 97 || convertEncoderToDial(steps) < 4)
+  {
+    Serial.println("We're too close to zero");
+    setDial(50, false); //Advance to 50 dial ticks away from here
+  }
+  
+  int dialValue = setDial(0, true); //Turn to zero with an extra spin
 
   Serial.print("resetDial ended at: ");
   Serial.println(dialValue);
@@ -296,26 +298,11 @@ void countB()
   if (steps > 8399) steps = 0; //Limit variable to 8399
 }
 
-//Checks to see if we detect the magnet
-boolean magnetDetected()
+//Checks to see if we detect the photogate being blocked by the flag
+boolean flagDetected()
 {
   if (digitalRead(photo) == LOW) return (true);
   return (false);
-
-
-  //Take a few readings to really verify
-  byte checks = 0;
-  for (byte x = 0 ; x < 10 ; x++) //There are a lot of false checks. Wait for 100 of the same.
-  {
-    if (digitalRead(photo) == LOW) checks++; //Magnet detected!
-  }
-
-  //Serial.print("magnet detected: ");
-  //Serial.println(checks);
-
-  if (checks > 7) return (true); //Mostly detected
-
-  return (false); //No magnet
 }
 
 //Play a music tone to indicate door is open
@@ -334,7 +321,7 @@ void announceSuccess()
 //It has 12 upper and 12 low indents which means 100/24 = 4.16 per lower indent
 //So it moves a bit across the wheel. We could do floats, instead we'll do a lookup
 //Values were found by hand: What number is in the middle of the indent?
-int lookupAValues(int indentNumber)
+int lookupIndentValues(int indentNumber)
 {
   switch (indentNumber)
   {

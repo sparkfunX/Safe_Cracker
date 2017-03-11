@@ -9,8 +9,10 @@
   Motor current turning dial, speed = 255, ~350 to 560mA
   Motor current turning dial, speed = 50, = ~60 to 120mA
 
+
   To write:
     int measureIndents()
+    record combinations to eeprom
 
   To test:
     boolean tryHandle(void)
@@ -20,35 +22,88 @@
     setHome(void) - Detects reed switch and clears steps to zero
     resetDial(void) - Resets discs to a ready to set (turn CW to set disc C)
     int readMotorCurrent(void)
+
+  3/5/17
+  Widths:
+  [0] = 491
+  [1] = 472
+  [2] = 514
+  [3] = 471
+  [4] = 492
+  [5] = 480
+  [6] = 486
+  [7] = 481
+  [8] = 466
+  [9] = 463
+  [10] = 472
+  [11] = 467
+
+  Widths:
+  [0] = 519
+  [1] = 522
+  [2] = 541
+  [3] = 522
+  [4] = 533
+  [5] = 528
+  [6] = 541
+  [7] = 539
+  [8] = 528
+  [9] = 525
+  [10] = 530
+  [11] = 530
+
+  Widths:
+  [0] = 542
+  [1] = 529
+  [2] = 555
+  [3] = 532
+  [4] = 544
+  [5] = 539
+  [6] = 547
+  [7] = 551
+  [8] = 530
+  [9] = 522
+  [10] = 530
+  [11] = 535
+
 */
 
 const byte encoderA = 2;
 const byte encoderB = 3;
-const byte servo = 9;
-const byte motorReset = 8;
+const byte photo = 5;
 const byte motorPWM = 6;
+const byte button = 7;
+const byte motorReset = 8;
+const byte servo = 9;
 const byte motorDIR = 10;
 const byte buzzer = 11;
 const byte LED = 13;
-const byte currentSense = A4; //Should be A0 but trace is broken
-const byte servoPosition = A1;
 
-const byte photoHigh = A3;
-const byte photoLow = A2;
-const byte photo = A1;
+const byte currentSense = A0;
+const byte servoPosition = A1;
+const byte displayClock = A2;
+const byte displayEnable = A3;
+const byte displaySerial = A4;
 
 #include <Servo.h>
 Servo handleServo;
 
-const int servoRestingPosition = 85; //Found by trial/error once apparatus is attached to handle
-const int servoPressurePosition = servoRestingPosition + 40; //Found by trial/error
-const int servoTryPosition = servoRestingPosition + 50; //Found by trial/error
+//Increase in numbers cause handle to go down
+//Resting is 5, which is analog read 133/106
+//Good pressure is 50, analog 203
+//Open is 75 and analog greater than 254
+//Max open is 175, analog around 450
+const int servoRestingPosition = 5; //Found by trial/error once apparatus is attached to handle
+const int servoPressurePosition = 40; //Found by trial/error
+const int servoTryPosition = 60; //Found by trial/error
 
 #define CCW 0
 #define CW 1
 
 volatile int steps = 0; //Keeps track of encoder counts. 8400 per revolution so this can get big.
 boolean direction = CW; //steps goes up or down based on direction
+boolean previousDirection = CW; //Detects when direction changes to add some steps for encoder slack
+const byte homeOffset = 1; //Where does the dial actually land after doing a goHome calibration
 
 //DiscA goes in CW fashion during testing. 12 indentations, each 8.3 numbers wide.
 //Each combination progresses at 30 numbers (12*8.3=99.6)
@@ -86,10 +141,10 @@ void setup()
   pinMode(servoPosition, INPUT);
 
   pinMode(photo, INPUT_PULLUP);
-  pinMode(photoHigh, OUTPUT);
-  pinMode(photoLow, OUTPUT);
-  digitalWrite(photoHigh, HIGH);
-  digitalWrite(photoLow, LOW);
+
+  pinMode(displayClock, OUTPUT);
+  pinMode(displayEnable, OUTPUT);
+  pinMode(displaySerial, OUTPUT);
 
   //Setup the encoder interrupts.
   attachInterrupt(digitalPinToInterrupt(encoderA), countA, CHANGE);
@@ -106,27 +161,21 @@ void setup()
 
 void loop()
 {
+  int randomDial = 0;
+
   Serial.println();
   messagePause("Press key to start");
 
-  turnCW();
-  int randomDial = random(0, 100);
-  setDial(randomDial, false);
+  //testServo(); //Infinite loop to test servo
 
-  messagePause("Time to find home");
-  goHome(); //Detect magnet and center the dial
+  //measureDiscA(); //Try to measure the idents in disc A
 
-  for (int x = 0 ; x < 4 ; x++)
-  {
-    Serial.print("Dial is at: ");
-    Serial.println(convertEncoderToDial(steps));
+  //turnCW();
+  //randomDial = random(0, 100);
+  //setDial(randomDial, false);
 
-    messagePause("Goto random");
-
-    randomDial = random(0, 100);
-    setDial(randomDial, false);
-//    setDial(58, false);
-  }
+  positionTesting();
+  
 
 
   /*  turnCW();
@@ -137,35 +186,7 @@ void loop()
     messagePause("");
   */
 
-  //345 seems to be avg of high?
 
-  //Measure indent heights
-  /*messagePause("Motor done. Adjust dial to high indent");
-
-    //Apply pressure to handle
-    handleServo.write(servoPressurePosition);
-    delay(500); //Allow servo to move to position
-    int handlePosition = averageAnalogRead(servoPosition);
-    handleServo.write(servoRestingPosition); //Return to resting position (handle horizontal, door closed)
-
-    Serial.print("handlePosition high: ");
-    Serial.println(handlePosition);
-
-    //  setDial(randomDial + 5, false);
-    messagePause("Adjust dial to low indent");
-
-    //Apply pressure to handle
-    handleServo.write(servoPressurePosition);
-    delay(500); //Allow servo to move to position
-    handlePosition = averageAnalogRead(servoPosition);
-    handleServo.write(servoRestingPosition); //Return to resting position (handle horizontal, door closed)
-
-    Serial.print("handlePosition low: ");
-    Serial.println(handlePosition);
-  */
-
-
-  //measureDiscA(); //Try to measure the idents in disc A
 
   //setDiscsToStart(); //Put discs into starting position
 
@@ -187,87 +208,6 @@ void loop()
     {
     Serial.println("Failed: ");
     }*/
-}
-
-//Attempt to measure the 12 indents in disc A
-void measureDiscA()
-{
-  goHome(); //Detect magnet and center the dial
-  //delay(1000);
-  messagePause("Home");
-
-  resetDial(); //Clear out everything
-  //delay(1000);
-  messagePause("Cleared");
-
-  int indents[12];
-
-  for (int x = 0 ; x < 12 ; x++)
-  {
-    indents[x] = measureIndent();
-
-    //Advance 3 dial numbers
-
-  }
-}
-
-//From our current position, begin looking for and take internal measurement of the indents
-//on the blocking disc A
-//Caller has set the dial to wherever they want to start measuring from
-int measureIndent(void)
-{
-#define SEARCH_PRESSURE 120 //Todo Find by trial error. We don't want massive pressure that may burn out servo
-#define SEARCH_SPEED 100 //We don't want 255 fast, just a jaunt speed
-#define HIGH_INDENT_HANDLE_POSITION 145 //TODO Wild guess until tested
-  int edgeTweedleDee = 0;
-  int edgeTweedleDumb = 0;
-
-  //This won't work: the motor is not turning. Don't measure current here
-
-  float startingCurrent = readMotorCurrent(); //Take initial reading
-  Serial.print("startingCurrent: ");
-  Serial.println(startingCurrent, 3);
-
-  //Apply pressure to handle
-  handleServo.write(SEARCH_PRESSURE);
-
-  //TODO change as needed
-  delay(300); //Wait for servo to move, but don't let it stall for too long and burn out
-
-  //Spin until we hit the edge of the indent
-  turnCW();
-  setMotorSpeed(SEARCH_SPEED); //Begin turning dial
-  while (readMotorCurrent() < (startingCurrent * 1.5))
-  {
-    if (averageAnalogRead(servoPosition) < HIGH_INDENT_HANDLE_POSITION)
-      Serial.println("Indent detected");
-    delay(10);
-  }
-  setMotorSpeed(0); //Stop!
-
-  delay(100); //Alow motor to stop spinning
-  messagePause("Detected edge of indent");
-
-  edgeTweedleDee = steps; //Take measurement
-
-  //Ok, we've made it to the far edge of an indent. Now move backwards towards the other edge.
-  turnCCW();
-
-  //Spin until we hit the opposite edge of the indent
-  setMotorSpeed(SEARCH_SPEED); //Begin turning dial
-  while (readMotorCurrent() < (startingCurrent * 1.5))
-  {
-    delay(10);
-  }
-  setMotorSpeed(0); //Stop!
-
-  delay(100); //Alow motor to stop spinning
-  messagePause("Detected opposite edge of indent");
-
-  edgeTweedleDumb = steps; //Take measurement
-
-  int sizeOfIndent = abs(edgeTweedleDee - edgeTweedleDumb);
-  return (sizeOfIndent);
 }
 
 //Set the discs to their starting positions
@@ -305,7 +245,7 @@ void setDiscsToStart()
 //Given the current state of discs, advance to the next numbers
 void nextCombination()
 {
-  discA = lookupAValues(((discA + 2) / 8) + 1); //There are 12 indentations. Disc A changes by 8.3.
+  discA = lookupIndentValues(((discA + 2) / 8) + 1); //There are 12 indentations. Disc A changes by 8.3.
   if (discA > 99)
   {
     discA = DISCA_START; //Reset discA
@@ -370,3 +310,5 @@ void nextCombination()
     while (1); //Freeze
   }
 }
+
+
