@@ -13305,18 +13305,6 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <label x="40.64" y="157.48" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
-<net name="DISPLAY_CLOCK" class="0">
-<segment>
-<pinref part="J7" gate="G$1" pin="2"/>
-<wire x1="210.82" y1="106.68" x2="213.36" y2="106.68" width="0.1524" layer="91"/>
-<label x="213.36" y="106.68" size="1.27" layer="95" xref="yes"/>
-</segment>
-<segment>
-<pinref part="U1" gate="G$1" pin="A2"/>
-<wire x1="43.18" y1="162.56" x2="40.64" y2="162.56" width="0.1524" layer="91"/>
-<label x="40.64" y="162.56" size="1.27" layer="95" rot="R180" xref="yes"/>
-</segment>
-</net>
 <net name="BUTTON" class="0">
 <segment>
 <pinref part="J9" gate="G$1" pin="2"/>
@@ -13331,14 +13319,26 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </net>
 <net name="DISPLAY_LATCH" class="0">
 <segment>
-<pinref part="U1" gate="G$1" pin="A3"/>
-<wire x1="43.18" y1="160.02" x2="40.64" y2="160.02" width="0.1524" layer="91"/>
-<label x="40.64" y="160.02" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="J7" gate="G$1" pin="2"/>
+<wire x1="210.82" y1="106.68" x2="213.36" y2="106.68" width="0.1524" layer="91"/>
+<label x="213.36" y="106.68" size="1.27" layer="95" xref="yes"/>
 </segment>
+<segment>
+<pinref part="U1" gate="G$1" pin="A2"/>
+<wire x1="43.18" y1="162.56" x2="40.64" y2="162.56" width="0.1524" layer="91"/>
+<label x="40.64" y="162.56" size="1.27" layer="95" rot="R180" xref="yes"/>
+</segment>
+</net>
+<net name="DISPLAY_CLOCK" class="0">
 <segment>
 <pinref part="J7" gate="G$1" pin="3"/>
 <wire x1="210.82" y1="109.22" x2="213.36" y2="109.22" width="0.1524" layer="91"/>
 <label x="213.36" y="109.22" size="1.27" layer="95" xref="yes"/>
+</segment>
+<segment>
+<pinref part="U1" gate="G$1" pin="A3"/>
+<wire x1="43.18" y1="160.02" x2="40.64" y2="160.02" width="0.1524" layer="91"/>
+<label x="40.64" y="160.02" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 </nets>
