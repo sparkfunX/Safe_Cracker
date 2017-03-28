@@ -1,3 +1,7 @@
+/*
+  These functions are used to calibrate the dialer and handle servo
+*/
+
 //Spins the motor while we tweak the servo up/down to detect binding force
 //and servo position
 void testServo()
@@ -50,9 +54,7 @@ void testServo()
     Serial.println();
 
     delay(100);
-
   }
-
 }
 
 //Test to see if we can repeatably go to a dial position
@@ -61,29 +63,21 @@ void testServo()
 void positionTesting()
 {
   int randomDial;
-  //messagePause("Time to find home");
-  goHome(); //Detect the home flag and center the dial
-  
-  for (int x = 0 ; x < 4 ; x++)
-  {
-    Serial.print("Dial is at: ");
-    Serial.println(convertEncoderToDial(steps));
 
-    messagePause("Goto next spot");
+  randomDial = random(0, 100);
+  turnCCW();
+  setDial(randomDial, false);
 
-    randomDial = random(0, 100);
-    turnCCW();
-    setDial(randomDial, false);
+  Serial.print("Dial should be at: ");
+  Serial.println(convertEncoderToDial(steps));
+  messagePause("Verify then press key to continue");
 
-    Serial.print("Dial is at: ");
-    Serial.println(convertEncoderToDial(steps));
+  randomDial = random(0, 100);
+  turnCW();
+  setDial(randomDial, false);
 
-    messagePause("Goto next spot");
-
-    randomDial = random(0, 100);
-    turnCW();
-    setDial(randomDial, false);
-  }
-
+  Serial.print("Dial should be at: ");
+  Serial.println(convertEncoderToDial(steps));
+  messagePause("Verify then press key to exit");
 }
 

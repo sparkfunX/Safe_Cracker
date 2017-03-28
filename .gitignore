@@ -1,47 +1,44 @@
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
+# Ignore list for Eagle, a PCB layout tool
 
-# Folder config file
-Desktop.ini
+# Backup files
+*.s#?
+*.b#?
+*.l#?
 
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
+# Eagle project file
+# It contains a serial number and references to the file structure
+# on your computer.
+# comment the following line if you want to have your project file included.
+eagle.epf
 
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
+# Autorouter files
+*.pro
+*.job
 
-# Windows shortcuts
-*.lnk
+# CAM files
+*.$$$
+*.cmp
+*.ly2
+*.l15
+*.sol
+*.plc
+*.stc
+*.sts
+*.crc
+*.crs
 
-# =========================
-# Operating System Files
-# =========================
+*.dri
+*.drl
+*.gpi
+*.pls
 
-# OSX
-# =========================
+*.drd
+*.drd.*
 
-.DS_Store
-.AppleDouble
-.LSOverride
+*.info
 
-# Thumbnails
-._*
+*.eps
 
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
+# file locks introduced since 7.x
+*.lck
 
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk

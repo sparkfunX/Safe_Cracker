@@ -13293,7 +13293,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <wire x1="68.58" y1="137.16" x2="93.98" y2="137.16" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="SER_OUT" class="0">
+<net name="DISPLAY_DATA" class="0">
 <segment>
 <pinref part="J7" gate="G$1" pin="4"/>
 <wire x1="210.82" y1="111.76" x2="213.36" y2="111.76" width="0.1524" layer="91"/>
@@ -13305,19 +13305,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <label x="40.64" y="157.48" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
-<net name="ENABLE" class="0">
-<segment>
-<pinref part="J7" gate="G$1" pin="3"/>
-<wire x1="210.82" y1="109.22" x2="213.36" y2="109.22" width="0.1524" layer="91"/>
-<label x="213.36" y="109.22" size="1.27" layer="95" xref="yes"/>
-</segment>
-<segment>
-<pinref part="U1" gate="G$1" pin="A3"/>
-<wire x1="43.18" y1="160.02" x2="40.64" y2="160.02" width="0.1524" layer="91"/>
-<label x="40.64" y="160.02" size="1.27" layer="95" rot="R180" xref="yes"/>
-</segment>
-</net>
-<net name="CLOCK" class="0">
+<net name="DISPLAY_CLOCK" class="0">
 <segment>
 <pinref part="J7" gate="G$1" pin="2"/>
 <wire x1="210.82" y1="106.68" x2="213.36" y2="106.68" width="0.1524" layer="91"/>
@@ -13339,6 +13327,18 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <pinref part="U1" gate="G$1" pin="D7"/>
 <wire x1="68.58" y1="147.32" x2="71.12" y2="147.32" width="0.1524" layer="91"/>
 <label x="71.12" y="147.32" size="1.27" layer="95" xref="yes"/>
+</segment>
+</net>
+<net name="DISPLAY_LATCH" class="0">
+<segment>
+<pinref part="U1" gate="G$1" pin="A3"/>
+<wire x1="43.18" y1="160.02" x2="40.64" y2="160.02" width="0.1524" layer="91"/>
+<label x="40.64" y="160.02" size="1.27" layer="95" rot="R180" xref="yes"/>
+</segment>
+<segment>
+<pinref part="J7" gate="G$1" pin="3"/>
+<wire x1="210.82" y1="109.22" x2="213.36" y2="109.22" width="0.1524" layer="91"/>
+<label x="213.36" y="109.22" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 </nets>

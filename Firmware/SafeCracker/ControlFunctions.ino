@@ -1,3 +1,20 @@
+/*
+  These are the general control functions
+
+  setDial - go to a given dial position (0 to 99)
+  resetDial - spin the dial twice to move reset discs A, B, and C. Stop at 0.
+  goHome - tell dial to return to where the flag interruts the photogate. Depending on how the robot is attached to dial, this may be true zero or an offset
+
+  Supporting functions:
+  gotoStep - go to a certain step value out of 8400. The DC motor has momentum so this function, as best as possible, goes to a step value
+  stepRequired - calcs the steps of the encoder to get from current position to a given position
+  convertDialToEncoder - given a dial number, how many encoder steps is that?
+  convertEncoderToDial - given encoder value, what is the dial position?
+  enable/disableMotor - controls the enable pin on motor driver
+  turnCW/CCW - controls the direction pin on motor driver
+
+*/
+
 //Given a step value, go to that step
 //Assume user has set direction prior to calling
 //Returns the delta from what you asked and where it ended up
@@ -11,18 +28,16 @@ int gotoStep(int stepGoal, boolean addAFullRotation)
 
   //Because we're switching directions we need to add extra steps to take
   //up the slack in the encoder
-  //84 is too far, 0 is too short, 42 is pretty good
-  int adjustment = 84 * 3; //This will
   if (direction == CW && previousDirection == CCW)
   {
-    steps += adjustment;
-    if (stepGoal > 8400) stepGoal -= 8400;
+    steps += switchDirectionAdjustment;
+    if (steps > 8400) steps -= 8400;
     previousDirection = CW;
   }
   else if (direction == CCW && previousDirection == CW)
   {
-    steps -= adjustment;
-    if (stepGoal < 0) stepGoal += 8400;
+    steps -= switchDirectionAdjustment;
+    if (steps < 0) steps += 8400;
     previousDirection = CCW;
   }
 
@@ -44,19 +59,19 @@ int gotoStep(int stepGoal, boolean addAFullRotation)
 
   setMotorSpeed(0); //Stop
 
-  delay(500); //Wait for motor to stop
+  delay(200); //Wait for motor to stop
 
   int delta = steps - stepGoal;
 
-  if (direction == CW) Serial.print("CW ");
-  else Serial.print("CCW ");
-  Serial.print("stepGoal: ");
-  Serial.print(stepGoal);
-  Serial.print(" / Final steps: ");
-  Serial.print(steps);
-  Serial.print(" / delta: ");
-  Serial.print(delta);
-  Serial.println();
+  /*if (direction == CW) Serial.print("CW ");
+    else Serial.print("CCW ");
+    Serial.print("stepGoal: ");
+    Serial.print(stepGoal);
+    Serial.print(" / Final steps: ");
+    Serial.print(steps);
+    Serial.print(" / delta: ");
+    Serial.print(delta);
+    Serial.println();*/
 
   return (delta);
 }
@@ -112,8 +127,6 @@ int setDial(int dialValue, boolean extraSpin)
 //Spin until we detect the photo gate trigger
 void goHome()
 {
-  Serial.println("Going home");
-
   byte fastSearch = 255; //Speed at which we locate photogate
   byte slowSearch = 50;
 
@@ -125,7 +138,7 @@ void goHome()
   //If the photogate is already detected spin until we are out
   if (flagDetected() == true)
   {
-    Serial.println("We're too close to the photogate");
+    //Serial.println("We're too close to the photogate");
     int currentDial = convertEncoderToDial(steps);
     currentDial += 50;
     if (currentDial > 100) currentDial -= 100;
@@ -193,7 +206,7 @@ void resetDial()
   //If we're too close to zero, add 50
   if (convertEncoderToDial(steps) > 97 || convertEncoderToDial(steps) < 4)
   {
-    Serial.println("We're too close to zero");
+    //Serial.println("We're too close to zero");
     setDial(50, false); //Advance to 50 dial ticks away from here
   }
   previousDirection = CCW;
@@ -214,7 +227,7 @@ boolean tryHandle()
   delay(500); //Wait for servo to move, but don't let it stall for too long and burn out
 
   //Check if we're there
-  int handlePosition = analogRead(servoPosition);
+  handlePosition = averageAnalogRead(servoPosition);
   if (handlePosition > handleOpenPosition)
   {
     //Holy smokes we're there!
@@ -325,19 +338,37 @@ int lookupIndentValues(int indentNumber)
 {
   switch (indentNumber)
   {
-    case 0: return (0); //98 to 1 on the wheel
+    //Values found by measureIndents() function
+    case 0: return (99); //98 to 1 on the wheel
     case 1: return (8); //6-9
     case 2: return (16); //14-17
     case 3: return (24); //23-26
-    case 4: return (32); //31-34
+    case 4: return (33); //31-34
     case 5: return (41); //39-42
-    case 6: return (49); //48-51
+    case 6: return (50); //48-51
     case 7: return (58); //56-59
     case 8: return (66); //64-67
     case 9: return (74); //73-76
     case 10: return (83); //81-84
     case 11: return (91); //90-93
     case 12: return (-1); //Not valid
+
+      /* Original values found by hand
+        case 0: return (0); //98 to 1 on the wheel
+        case 1: return (8); //6-9
+        case 2: return (16); //14-17
+        case 3: return (24); //23-26
+        case 4: return (32); //31-34
+        case 5: return (41); //39-42
+        case 6: return (49); //48-51
+        case 7: return (58); //56-59
+        case 8: return (66); //64-67
+        case 9: return (74); //73-76
+        case 10: return (83); //81-84
+        case 11: return (91); //90-93
+        case 12: return (-1); //Not valid
+      */
+
   }
 }
 
@@ -348,6 +379,18 @@ void messagePause(char* message)
   Serial.println(message);
   while (!Serial.available()); //Wait for user input
   Serial.read(); //Throw away character
+}
+
+//See if user has pressed a button. If so, pause
+void checkForUserPause()
+{
+  if (Serial.available()) //See if user has pressed a button
+  {
+    Serial.read(); //Throw out character
+    Serial.print("Pausing. Press button to continue.");
+
+    while (!Serial.available()); //Wait for user to press button to continue
+  }
 }
 
 //Takes an average of readings on a given pin
