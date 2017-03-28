@@ -9,12 +9,6 @@
 
   Motor current turning dial, speed = 255, ~350 to 560mA
   Motor current turning dial, speed = 50, = ~60 to 120mA
-
-  To write:
-    record combinations to eeprom
-    build calibration routine that takes in first reading (to calc home offset)
-    and 2nd reading (to calc reverse direction slack)
-
 */
 
 //Pin definitions
@@ -56,7 +50,7 @@ const int handleOpenPosition = 260; //Analog value. Must be less than analog val
 volatile int steps = 0; //Keeps track of encoder counts. 8400 per revolution so this can get big.
 boolean direction = CW; //steps goes up or down based on direction
 boolean previousDirection = CW; //Detects when direction changes to add some steps for encoder slack
-const byte homeOffset = 98; //Where does the dial actually land after doing a goHome calibration
+const byte homeOffset = 98; //After doing a goHome calibration, adjust this number up or down until dial is at zero
 
 //Because we're switching directions we need to add extra steps to take
 //up the slack in the encoder
@@ -65,16 +59,15 @@ int switchDirectionAdjustment = (84 * 1) + 0; //Use 'Test dial control' to deter
 //84*10 says 90 but is actually 85 (too negative)
 //84 * 2 = Says 33 but at actually 32 (too negative)
 
-//DiscC goes in CCW fashion during testing. 12 indentations, each 8.3 numbers wide.
-//Each combination progresses at 30 numbers (12*8.3=99.6)
-//Center of first indent (98 to 1 inclusive) is 0
+//DiscA goes in CCW fashion during testing, increments 3 each new try.
+//We don't know if this is the center of the notch. If you exhaust the combination domain, adjust up or down one.
+#define DISCA_START 0
+
+//DiscB goes in CW fashion during testing, increments 3 each new try.
+#define DISCB_START (DISCA_START - 3)
+
+//DiscC goes in CCW fashion during testing. 12 indentations, 12 raised bits. Indents are 4.17 numbers wide.
 #define DISCC_START 0
-
-//DiscB goes in CW fashion during testing. Increments of 3.
-#define DISCB_START 98
-
-//DiscA goes in CCW fashion during testing. First valid number is 3.
-#define DISCA_START 3
 
 //These are the combination numbers we are attempting
 int discA = DISCA_START;
@@ -82,8 +75,16 @@ int discB = DISCB_START;
 int discC = DISCC_START;
 
 boolean indentsToTry[12]; //Keeps track of the indents we want to try
-byte maxIndentAttempts = 0; //Keeps track of the indents we need to try
-byte currentIndent = 0; //Keeps track on the indent we are on
+
+//Keeps track of the combos we need to try for each disc
+//byte maxAAttempts = 33; //Assume solution notch is 3 digits wide
+//byte maxBAttempts = 33; //Assume solution notch is 3 digits wide
+byte maxCAttempts = 0; //Calculated at startup
+
+//Keeps track of how many combos we've tried on a given disc
+//byte discAAttempts = 0;
+//byte discBAttempts = 0;
+byte discCAttempts = 0;
 
 long startTime; //Used to measure amount of time taken per test
 
@@ -145,21 +146,35 @@ void setup()
   indentsToTry[10] = false; //83
   indentsToTry[11] = false; //91
 
-  //Calculate how many indents we need to attempt
-  maxIndentAttempts = 0;
+  //Calculate how many indents we need to attempt on discC
+  maxCAttempts = 0;
   for (byte x = 0 ; x < 12 ; x++)
-    if (indentsToTry[x] == true) maxIndentAttempts++;
+    if (indentsToTry[x] == true) maxCAttempts++;
+
+  //At startup discB may be negative. Fix it.
+  if(discB < 0) discB += 100;
 
   clearDisplay();
 }
 
 void loop()
 {
+  //Main serial control menu
+  Serial.println();
+  Serial.print(F("Combo to start at: "));
+  Serial.print(discA);
+  Serial.print("/");
+  Serial.print(discB);
+  Serial.print("/");
+  Serial.print(discC);
+  Serial.println();
+
   Serial.println(F("Menu:"));
   Serial.println(F("1) Go home and reset dial"));
   Serial.println(F("2) Test dial control"));
   Serial.println(F("3) Measure indents"));
   Serial.println(F("4) Calibrate handle servo"));
+  Serial.println(F("5) Set starting combos"));
   Serial.println(F("s) Start cracking"));
 
   while (!Serial.available());
@@ -181,21 +196,62 @@ void loop()
   }
   else if (incoming == '3')
   {
-    measureDiscC(1); //Try to measure the idents in disc C. Give function the number of tests to run (get average).
+      int measurements = 0;
+      while (1) //Loop until we have good input
+      {
+        Serial.print(F("How many measurements would you like to take? (Start with 1)"));
+        while (!Serial.available()); //Wait for user input
+        Serial.setTimeout(1000); //Must be long enough for user to enter second character 
+        measurements = Serial.parseInt(); //Read user input
+
+        if (measurements >= 1 && measurements <= 20) break;
+
+        Serial.print(measurements);
+        Serial.println(F(" out of bounds"));
+      }
+      Serial.println(measurements);
+      
+      measureDiscC(measurements); //Try to measure the idents in disc C. Give function the number of tests to run (get average).
   }
   else if (incoming == '4')
   {
     testServo(); //Infinite loop to test servo
   }
+  else if (incoming == '5')
+  {
+    //Get starting values from user
+    for (byte x = 0 ; x < 3 ; x++)
+    {
+      int combo = 0;
+      while (1) //Loop until we have good input
+      {
+        Serial.print(F("Enter Combination "));
+        if (x == 0) Serial.print("A");
+        else if (x == 1) Serial.print("B");
+        else if (x == 2) Serial.print("C");
+        Serial.print(F(" to start at: "));
+        while (!Serial.available()); //Wait for user input
+
+        Serial.setTimeout(1000); //Must be long enough for user to enter second character 
+        combo = Serial.parseInt(); //Read user input
+
+        if (combo >= 0 && combo <= 99) break;
+
+        Serial.print(combo);
+        Serial.println(F(" out of bounds"));
+      }
+      Serial.println(combo);
+      if (x == 0) discA = combo;
+      else if (x == 1) discB = combo;
+      else if (x == 2) discC = combo;
+    }
+
+  }
   else if (incoming == 's')
   {
     startTime = millis();
 
-    //For testing the indent roll over start disc B at 68
-    discB = 68 + 3;
-    currentIndent = maxIndentAttempts; //Trigger the adjusting of B
-
-    setDiscsToStart(); //Put discs into starting position
+    resetDiscsWithCurrentCombo(false); //Set the discs to the current combinations (user can set if needed from menu)
 
     while (1)
     {
@@ -217,221 +273,6 @@ void loop()
           break; //User wants to stop
         }
       }
-    }
-  }
+    } //End eombination loop
+  } //End incoming == 's'
 }
-
-//Set the discs to their starting positions
-void setDiscsToStart()
-{
-  //Go to starting conditions
-  goHome(); //Detect magnet and center the dial
-  delay(1000);
-
-  resetDial(); //Clear out everything
-  delay(1000);
-
-  //Set discs to their initialized value
-  turnCCW();
-  int discAIsAt = setDial(discA, false);
-  Serial.print("DiscA is at: ");
-  Serial.println(discAIsAt);
-
-  turnCW();
-  //Turn past disc B one extra spin
-  int discBIsAt = setDial(discB, true);
-  Serial.print("DiscB is at: ");
-  Serial.println(discBIsAt);
-
-  turnCCW();
-  int discCIsAt = setDial(discC, false);
-  Serial.print("DiscC is at: ");
-  Serial.println(discCIsAt);
-
-  Serial.println("Discs are at starting positions");
-}
-
-//Given the current state of discs, advance to the next numbers
-void nextCombination()
-{
-  currentIndent++;
-
-  if (currentIndent >= maxIndentAttempts) //Idents are exhuasted, time to adjust discB
-  {
-    currentIndent = 0; //Reset count
-
-    discB -= 3; //Disc B changes by 3
-    if (discB < 0) //disc B is exhauted, time to adjust discA
-    {
-      Serial.println("Freeze");
-      while (1); //Freeze
-
-      discC = DISCC_START; //Reset discC
-      discB = DISCB_START; //Reset discB
-      discA += 3; //Disc A changes by 3
-      if (discC > 99)
-      {
-        Serial.println("Damn. We exhausted the combination domain. Try changing the center values.");
-        disableMotor(); //Power down
-        while (1); //Freeze
-      }
-      else
-      {
-        //Go to starting conditions
-        goHome(); //Detect magnet and center the dial
-        delay(1000);
-
-        resetDial(); //Clear out everything
-        delay(1000);
-
-        //Adjust discA to this new value
-        turnCCW();
-        int discAIsAt = setDial(discA, false);
-        Serial.print("DiscA is at: ");
-        Serial.println(discAIsAt);
-        messagePause("Verify disc position and press a key");
-
-        //Adjust discB to this new value
-        turnCW();
-        int discBIsAt = setDial(discB, true); //Add extra spin
-        Serial.print("DiscB is at: ");
-        Serial.println(discBIsAt);
-        messagePause("Verify disc position and press a key");
-
-        turnCCW();
-        int discCIsAt = setDial(discC, false);
-        Serial.print("DiscC is at: ");
-        Serial.println(discCIsAt);
-        messagePause("Verify disc position and press a key");
-      }
-    }
-    else
-    {
-      discC = getNextIndent(discB); //Get the first indent after B
-
-      long delta = millis() - startTime;
-      startTime = millis();
-      Serial.print("Time required to run discC: ");
-      Serial.println(delta);
-
-      //Adjust discB to this new value
-      turnCW();
-
-      //Turn 50 dial ticks CW away from here
-      //This is not a good idea. Indent might be
-      //within 50, which would push us past the catch on DiscB
-      int currentDial = convertEncoderToDial(steps);
-      currentDial -= 30;
-      if (currentDial < 0) currentDial += 100;
-      setDial(currentDial, false);
-
-      int discBIsAt = setDial(discB, false);
-      //Serial.print("DiscB is at: ");
-      //Serial.println(discBIsAt);
-      //messagePause("Check dial position");
-
-      turnCCW();
-      int discCIsAt = setDial(discC, false);
-      //Serial.print("DiscC is at: ");
-      //Serial.println(discCIsAt);
-      //messagePause("Check dial position");
-    }
-  }
-  else
-  {
-    discC = getNextIndent(discC);
-
-    //Adjust discC to this new value
-    turnCCW();
-    int discCIsAt = setDial(discC, false);
-    //Serial.print("DiscC is at: ");
-    //Serial.println(discCIsAt);
-  }
-
-  showCombination(discA, discB, discC); //Update display
-
-  Serial.print("Time, ");
-  Serial.print(millis()); //Show timestamp
-
-  Serial.print(", Combination, ");
-  Serial.print(discA);
-  Serial.print("/");
-  Serial.print(discB);
-  Serial.print("/");
-  Serial.print(discC);
-
-  //Try the handle
-  if (tryHandle() == true)
-  {
-    Serial.print(", Handle position, ");
-    Serial.print(handlePosition);
-
-    Serial.println();
-    Serial.println("Door is open!!!");
-    announceSuccess();
-    disableMotor(); //Power down motor
-    while (1); //Freeze
-  }
-
-  Serial.print(", Handle position, ");
-  Serial.print(handlePosition);
-
-  Serial.println();
-}
-
-//Given a spot on the dial, what is the next available indent in the CCW direction
-//Takes care of wrap conditions
-//Returns the dial position of the next ident
-/*int getNextIndent(int currentDialPosition)
-  {
-  //Have we exhausted the indents to attempt on this dial?
-  indentsAttempted--;
-  if (indentsAttempted <= 0)
-  {
-    //Calculate how many indents we need to attempt
-    indentsAttempted = 0;
-    for (byte x = 0 ; x < 12 ; x++)
-      if (indentsToTry[x] == true) indentsAttempted++;
-
-    return (-1); //We have exhausted all the indents. Go to next discB position
-  }
-
-  //No? Ok, go to next indent available
-  for (int x = 0 ; x < 12 ; x++)
-  {
-    if (indentsToTry[x] == true) //Are we allowed to use this indent?
-    {
-      byte nextDialPosition = lookupIndentValues(x);
-      if (nextDialPosition > currentDialPosition)
-        return (nextDialPosition);
-    }
-  }
-
-  return (-1); //We have exhausted all the indents. Go to next discB position
-  }*/
-
-//Given a spot on the dial, what is the next available indent in the CCW direction
-//Takes care of wrap conditions
-//Returns the dial position of the next ident
-int getNextIndent(int currentDialPosition)
-{
-  for (int x = 0 ; x < 12 ; x++)
-  {
-    if (indentsToTry[x] == true) //Are we allowed to use this indent?
-    {
-      byte nextDialPosition = lookupIndentValues(x);
-      if (nextDialPosition > currentDialPosition) return (nextDialPosition);
-    }
-  }
-
-  //If we never found a next dial value then we have wrap around situation
-  //Find the first indent we can use
-  for (int x = 0 ; x < 12 ; x++)
-  {
-    if (indentsToTry[x] == true) //Are we allowed to use this indent?
-    {
-      return (lookupIndentValues(x));
-    }
-  }
-}
-

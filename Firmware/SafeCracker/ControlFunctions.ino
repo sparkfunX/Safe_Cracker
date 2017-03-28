@@ -4,6 +4,7 @@
   setDial - go to a given dial position (0 to 99)
   resetDial - spin the dial twice to move reset discs A, B, and C. Stop at 0.
   goHome - tell dial to return to where the flag interruts the photogate. Depending on how the robot is attached to dial, this may be true zero or an offset
+  setDiscsToStart - Go home, clear dial, go to starting numbers
 
   Supporting functions:
   gotoStep - go to a certain step value out of 8400. The DC motor has momentum so this function, as best as possible, goes to a step value
@@ -165,6 +166,40 @@ void goHome()
 
   previousDirection = CCW; //Last adjustment to dial was in CCW direction
 }
+
+//Set the discs to the current combinations (user selectable)
+void resetDiscsWithCurrentCombo(boolean pause)
+{
+  //Go to starting conditions
+  goHome(); //Detect magnet and center the dial
+  delay(300);
+
+  resetDial(); //Clear out everything
+  delay(300);
+
+  //Set discs to this combo
+  turnCCW();
+  int discAIsAt = setDial(discA, false);
+  Serial.print("DiscA is at: ");
+  Serial.println(discAIsAt);
+  if(pause == true) messagePause("Verify disc position");
+
+  turnCW();
+  //Turn past disc B one extra spin
+  int discBIsAt = setDial(discB, true);
+  Serial.print("DiscB is at: ");
+  Serial.println(discBIsAt);
+  if(pause == true) messagePause("Verify disc position");
+
+  turnCCW();
+  int discCIsAt = setDial(discC, false);
+  Serial.print("DiscC is at: ");
+  Serial.println(discCIsAt);
+  if(pause == true) messagePause("Verify disc position");
+
+  discCAttempts = -1; //Reset
+}
+
 
 //Given a dial value, covert to an encoder value (0 to 8400)
 //If there are 100 numbers on the dial, each number is 84 ticks wide
@@ -390,6 +425,31 @@ void checkForUserPause()
     Serial.print("Pausing. Press button to continue.");
 
     while (!Serial.available()); //Wait for user to press button to continue
+  }
+}
+
+//Given a spot on the dial, what is the next available indent in the CCW direction
+//Takes care of wrap conditions
+//Returns the dial position of the next ident
+int getNextIndent(int currentDialPosition)
+{
+  for (int x = 0 ; x < 12 ; x++)
+  {
+    if (indentsToTry[x] == true) //Are we allowed to use this indent?
+    {
+      byte nextDialPosition = lookupIndentValues(x);
+      if (nextDialPosition > currentDialPosition) return (nextDialPosition);
+    }
+  }
+
+  //If we never found a next dial value then we have wrap around situation
+  //Find the first indent we can use
+  for (int x = 0 ; x < 12 ; x++)
+  {
+    if (indentsToTry[x] == true) //Are we allowed to use this indent?
+    {
+      return (lookupIndentValues(x));
+    }
   }
 }
 

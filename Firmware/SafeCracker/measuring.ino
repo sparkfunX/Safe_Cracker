@@ -31,6 +31,10 @@ void measureDiscC(int numberOfTests)
       int dialValue = lookupIndentValues(indentNumber); //Get this indent's dial value
       setDial(dialValue, false); //Go to the middle of this indent's location
 
+      //Serial.print("Dial at: ");
+      //Serial.println(dialValue);
+      //messagePause("Verify dial location");
+
       measureIndent(indentWidths[indentNumber], indentDepths[indentNumber]);
 
       Serial.print(F("Test "));
@@ -71,7 +75,7 @@ void measureDiscC(int numberOfTests)
     Serial.println();
   }
 
-  messagePause("");
+  messagePause("Press key to continue");
 }
 
 //From: http://www.hackshed.co.uk/arduino-sorting-array-integers-with-a-bubble-sort-algorithm/
