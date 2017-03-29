@@ -136,15 +136,15 @@ void setup()
   indentsToTry[0] = true; //0
   indentsToTry[1] = true; //8
   indentsToTry[2] = true; //16
-  indentsToTry[3] = false; //24
-  indentsToTry[4] = false; //33
-  indentsToTry[5] = false; //41
-  indentsToTry[6] = false; //50
-  indentsToTry[7] = false; //58
-  indentsToTry[8] = false; //66
-  indentsToTry[9] = false; //74
-  indentsToTry[10] = false; //83
-  indentsToTry[11] = false; //91
+  indentsToTry[3] = true; //24
+  indentsToTry[4] = true; //33
+  indentsToTry[5] = true; //41
+  indentsToTry[6] = true; //50
+  indentsToTry[7] = true; //58
+  indentsToTry[8] = true; //66
+  indentsToTry[9] = true; //74
+  indentsToTry[10] = true; //83
+  indentsToTry[11] = true; //91
 
   //Calculate how many indents we need to attempt on discC
   maxCAttempts = 0;
@@ -155,6 +155,8 @@ void setup()
   if (discB < 0) discB += 100;
 
   clearDisplay();
+  showCombination(discA, discB, discC); //Update display
+
 }
 
 void loop()
@@ -260,29 +262,28 @@ void loop()
         Serial.println("Indents to test:");
         for (int x = 0 ; x < 12 ; x++)
         {
-          Serial.print(x + 1);
+          Serial.print(x);
           Serial.print(": ");
           if (indentsToTry[x] == true) Serial.print("Test");
           else Serial.print("-");
           Serial.println();
         }
         Serial.println("Which indent to change?");
-        Serial.println("Type 0 to exit");
+        Serial.println("Type 99 to exit");
 
         while (!Serial.available()); //Wait for user input
 
         Serial.setTimeout(500); //Must be long enough for user to enter second character
         indent = Serial.parseInt(); //Read user input
 
-        if (indent >= 0 && indent <= 12) break;
+        if (indent >= 0 && indent <= 11) break;
+        if (indent == 99) break;
 
         Serial.print(indent);
         Serial.println(F(" out of bounds"));
       }
 
-      if(indent == 0) break; //User wants to exit
-
-      indent--; //Line it up with the array
+      if(indent == 99) break; //User wants to exit
 
       //Flip it
       if(indentsToTry[indent] == true) indentsToTry[indent] = false;

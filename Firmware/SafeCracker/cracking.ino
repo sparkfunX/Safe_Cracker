@@ -42,22 +42,27 @@ void nextCombination()
     }
     else //Adjust discB and discC
     {
+      //Serial.println("B: Adjust");
+
       //long delta = millis() - startTime;
       //startTime = millis(); //Reset startTime
       //Serial.print("Time required to run discC: ");
       //Serial.println(delta);
 
-      discB -= 3; //Disc B changes by 3
-      if (discB < 0) discB += 100;
-
       //Adjust discB to this new value
       turnCW();
 
-      if (abs(discB - discC) < 3) //Disc B is within the moving tolerance
+      discB -= 3; //Disc B changes by 3
+      if (discB < 0) discB += 100;
+
+      if (abs(discB - discC) < 3) //Disc B is within the not moving tolerance
       {
-        //Skip this combo because it's too close to the same combo as C
-        discB -= 3; //Disc B changes by 3
-        if (discB < 0) discB += 100;
+        //We need to spin past disc C
+        //Turn 30 dial ticks CW away from here
+        int currentDial = convertEncoderToDial(steps);
+        currentDial -= 30;
+        if (currentDial < 0) currentDial += 100;
+        setDial(currentDial, false);
       }
 
       int discBIsAt = setDial(discB, false);
@@ -77,6 +82,8 @@ void nextCombination()
   }
   else //Adjust discC
   {
+    //Serial.println("C: Adjust");
+
     turnCCW();
 
     discC = getNextIndent(discC); //Get next discC position
