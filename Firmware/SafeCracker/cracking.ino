@@ -36,35 +36,39 @@ void nextCombination()
         //With this new A value, reset all discs
         //resetDiscsWithCurrentCombo(true); //Do pauses to verify positions
         resetDiscsWithCurrentCombo(false);
+        discCAttempts = 0; //Reset count
+
       }
     }
     else //Adjust discB and discC
     {
-      //long delta = millis() - startTime;
-      //startTime = millis(); //Reset startTime
-      //Serial.print("Time required to run discC: ");
-      //Serial.println(delta);
+      long delta = millis() - startTime;
+      startTime = millis(); //Reset startTime
+      Serial.print("Time required to run discC: ");
+      Serial.println(delta);
 
       discB -= 3; //Disc B changes by 3
       if (discB < 0) discB += 100;
 
-      discC = getNextIndent(discB); //Get the first indent after B
-
       //Adjust discB to this new value
       turnCW();
 
-      //Turn 50 dial ticks CW away from here
-      //This is not a good idea. Indent might be
-      //within 50, which would push us past the catch on DiscB
-      int currentDial = convertEncoderToDial(steps);
-      currentDial -= 30;
-      if (currentDial < 0) currentDial += 100;
-      setDial(currentDial, false);
+      if (abs(discB - discC) < 3) //Disc B is within the not moving tolerance 
+      {
+        //We need to spin past disc C
+        //Turn 30 dial ticks CW away from here
+        int currentDial = convertEncoderToDial(steps);
+        currentDial -= 30;
+        if (currentDial < 0) currentDial += 100;
+        setDial(currentDial, false);        
+      }
 
       int discBIsAt = setDial(discB, false);
       //Serial.print("DiscB is at: ");
       //Serial.println(discBIsAt);
       //messagePause("Check dial position");
+
+      discC = getNextIndent(discB); //Get the first indent after B
 
       turnCCW();
       int discCIsAt = setDial(discC, false);
@@ -72,16 +76,26 @@ void nextCombination()
       //Serial.println(discCIsAt);
       //messagePause("Check dial position");
     }
+
   }
   else //Adjust discC
   {
-    discC = getNextIndent(discC);
+    if (abs(discB - discC) > 2) //Distance between discs is big enough, we're good to go to this combo
+    {
+      discC = getNextIndent(discC);
 
-    //Adjust discC to this new value
-    turnCCW();
-    int discCIsAt = setDial(discC, false);
-    //Serial.print("DiscC is at: ");
-    //Serial.println(discCIsAt);
+      //Adjust discC to this new value
+      turnCCW();
+      int discCIsAt = setDial(discC, false);
+      //Serial.print("DiscC is at: ");
+      //Serial.println(discCIsAt);
+    }
+    else
+    {
+      //Discs are too close.
+      Serial.println("Skipping duplicate combination");
+    }
+
   }
 
   showCombination(discA, discB, discC); //Update display
@@ -127,18 +141,18 @@ void nextCombination()
 //the cracker will try a combination with two same numbers (ie: 7/7/0)
 boolean checkCrossing(int currentSpot, int changeAmount, int checkSpot)
 {
-  for(int x = 0 ; x < abs(changeAmount) ; x++)
+  for (int x = 0 ; x < abs(changeAmount) ; x++)
   {
-    if (currentSpot == checkSpot) return(true);
+    if (currentSpot == checkSpot) return (true);
 
-    if(changeAmount < 0) currentSpot--;
+    if (changeAmount < 0) currentSpot--;
     else currentSpot++;
 
-    if(currentSpot > 99) currentSpot = 0;
-    if(currentSpot < 0) currentSpot = 99;
+    if (currentSpot > 99) currentSpot = 0;
+    if (currentSpot < 0) currentSpot = 99;
   }
 
-  return(false);
-  
+  return (false);
+
 }
 

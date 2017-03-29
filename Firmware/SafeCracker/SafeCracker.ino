@@ -134,9 +134,9 @@ void setup()
   //Use the measure indents function to see which indents are skinniest
   //Disable all the idents that are largest or one you don't want to test
   indentsToTry[0] = false; //0
-  indentsToTry[1] = true; //8
-  indentsToTry[2] = false; //16
-  indentsToTry[3] = true; //24
+  indentsToTry[1] = false; //8
+  indentsToTry[2] = true; //16
+  indentsToTry[3] = false; //24
   indentsToTry[4] = false; //33
   indentsToTry[5] = false; //41
   indentsToTry[6] = false; //50
