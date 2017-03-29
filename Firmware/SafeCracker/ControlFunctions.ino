@@ -247,6 +247,19 @@ void resetDial()
   previousDirection = CCW;
 
   setDial(0, true); //Turn to zero with an extra spin
+
+  //Second spin
+  
+  //If we're too close to zero, add 50
+  if (convertEncoderToDial(steps) > 97 || convertEncoderToDial(steps) < 4)
+  {
+    //Serial.println("We're too close to zero");
+    setDial(50, false); //Advance to 50 dial ticks away from here
+  }
+
+  previousDirection = CCW;
+
+  setDial(0, false); //Turn to zero
 }
 
 //Tells the servo to pull down on the handle

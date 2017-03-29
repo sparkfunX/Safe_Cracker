@@ -132,16 +132,16 @@ void setup()
   enableMotor(); //Turn on motor controller
 
   //Use the measure indents function to see which indents are skinniest
-  //Disable all the idents that are largest or one you don't want to test
-  indentsToTry[0] = false; //0
-  indentsToTry[1] = false; //8
+  //Disable all the idents that are largest or ones you don't want to test
+  indentsToTry[0] = true; //0
+  indentsToTry[1] = true; //8
   indentsToTry[2] = true; //16
   indentsToTry[3] = false; //24
   indentsToTry[4] = false; //33
   indentsToTry[5] = false; //41
   indentsToTry[6] = false; //50
   indentsToTry[7] = false; //58
-  indentsToTry[8] = true; //66
+  indentsToTry[8] = false; //66
   indentsToTry[9] = false; //74
   indentsToTry[10] = false; //83
   indentsToTry[11] = false; //91
@@ -152,7 +152,7 @@ void setup()
     if (indentsToTry[x] == true) maxCAttempts++;
 
   //At startup discB may be negative. Fix it.
-  if(discB < 0) discB += 100;
+  if (discB < 0) discB += 100;
 
   clearDisplay();
 }
@@ -175,6 +175,7 @@ void loop()
   Serial.println(F("3) Measure indents"));
   Serial.println(F("4) Calibrate handle servo"));
   Serial.println(F("5) Set starting combos"));
+  Serial.println(F("6) Set indents to test"));
   Serial.println(F("s) Start cracking"));
 
   while (!Serial.available());
@@ -196,22 +197,22 @@ void loop()
   }
   else if (incoming == '3')
   {
-      int measurements = 0;
-      while (1) //Loop until we have good input
-      {
-        Serial.print(F("How many measurements would you like to take? (Start with 1)"));
-        while (!Serial.available()); //Wait for user input
-        Serial.setTimeout(1000); //Must be long enough for user to enter second character 
-        measurements = Serial.parseInt(); //Read user input
+    int measurements = 0;
+    while (1) //Loop until we have good input
+    {
+      Serial.print(F("How many measurements would you like to take? (Start with 1)"));
+      while (!Serial.available()); //Wait for user input
+      Serial.setTimeout(1000); //Must be long enough for user to enter second character
+      measurements = Serial.parseInt(); //Read user input
 
-        if (measurements >= 1 && measurements <= 20) break;
+      if (measurements >= 1 && measurements <= 20) break;
 
-        Serial.print(measurements);
-        Serial.println(F(" out of bounds"));
-      }
-      Serial.println(measurements);
-      
-      measureDiscC(measurements); //Try to measure the idents in disc C. Give function the number of tests to run (get average).
+      Serial.print(measurements);
+      Serial.println(F(" out of bounds"));
+    }
+    Serial.println(measurements);
+
+    measureDiscC(measurements); //Try to measure the idents in disc C. Give function the number of tests to run (get average).
   }
   else if (incoming == '4')
   {
@@ -232,7 +233,7 @@ void loop()
         Serial.print(F(" to start at: "));
         while (!Serial.available()); //Wait for user input
 
-        Serial.setTimeout(1000); //Must be long enough for user to enter second character 
+        Serial.setTimeout(1000); //Must be long enough for user to enter second character
         combo = Serial.parseInt(); //Read user input
 
         if (combo >= 0 && combo <= 99) break;
@@ -246,6 +247,52 @@ void loop()
       else if (x == 2) discC = combo;
     }
 
+  }
+  else if (incoming == '6')
+  {
+    while (1) //Loop until exit
+    {
+      int indent = 0;
+      
+      while (1) //Loop until we have valid input
+      {
+
+        Serial.println("Indents to test:");
+        for (int x = 0 ; x < 12 ; x++)
+        {
+          Serial.print(x + 1);
+          Serial.print(": ");
+          if (indentsToTry[x] == true) Serial.print("Test");
+          else Serial.print("-");
+          Serial.println();
+        }
+        Serial.println("Which indent to change?");
+        Serial.println("Type 0 to exit");
+
+        while (!Serial.available()); //Wait for user input
+
+        Serial.setTimeout(500); //Must be long enough for user to enter second character
+        indent = Serial.parseInt(); //Read user input
+
+        if (indent >= 0 && indent <= 12) break;
+
+        Serial.print(indent);
+        Serial.println(F(" out of bounds"));
+      }
+
+      if(indent == 0) break; //User wants to exit
+
+      indent--; //Line it up with the array
+
+      //Flip it
+      if(indentsToTry[indent] == true) indentsToTry[indent] = false;
+      else indentsToTry[indent] = true;      
+    }
+
+    //Calculate how many indents we need to attempt on discC
+    maxCAttempts = 0;
+    for (byte x = 0 ; x < 12 ; x++)
+      if (indentsToTry[x] == true) maxCAttempts++;
   }
   else if (incoming == 's')
   {
