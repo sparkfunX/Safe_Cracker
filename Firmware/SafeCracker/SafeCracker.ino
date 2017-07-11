@@ -9,7 +9,18 @@
 
   Motor current turning dial, speed = 255, ~350 to 560mA
   Motor current turning dial, speed = 50, = ~60 to 120mA
+
+  TODO:
+  -home offset setting in eeprom
+  indent testing in eeprom
+  servo pull force
 */
+
+#include "nvm.h" //EEPROM locations for settings
+#include <EEPROM.h> //For storing settings and things to NVM
+
+#include <Servo.h>
+Servo handleServo;
 
 //Pin definitions
 const byte encoderA = 2;
@@ -29,9 +40,6 @@ const byte displayLatch = A2;
 const byte displayClock = A3;
 const byte displayData = A4;
 
-#include <Servo.h>
-Servo handleServo;
-
 //Servo values were found using the testServo() function while the
 //cracker was deattached from the safe
 //Increase in numbers cause handle to go down
@@ -50,7 +58,7 @@ const int handleOpenPosition = 260; //Analog value. Must be less than analog val
 volatile int steps = 0; //Keeps track of encoder counts. 8400 per revolution so this can get big.
 boolean direction = CW; //steps goes up or down based on direction
 boolean previousDirection = CW; //Detects when direction changes to add some steps for encoder slack
-const byte homeOffset = 98; //After doing a goHome calibration, adjust this number up or down until dial is at zero
+byte homeOffset = EEPROM.read(LOCATION_HOME_OFFSET); //After doing a goHome calibration, adjust this number up or down until dial is at zero
 
 //Because we're switching directions we need to add extra steps to take
 //up the slack in the encoder
@@ -90,6 +98,8 @@ long startTime; //Used to measure amount of time taken per test
 
 int handlePosition; //Used to see how far handle moved when pulled on
 
+boolean buttonPressed = false; //Keeps track of the 'GO' button.
+
 void setup()
 {
   Serial.begin(115200);
@@ -110,6 +120,8 @@ void setup()
   pinMode(servoPosition, INPUT);
 
   pinMode(photo, INPUT_PULLUP);
+
+  pinMode(button, INPUT_PULLUP);
 
   pinMode(displayClock, OUTPUT);
   pinMode(displayLatch, OUTPUT);
@@ -133,18 +145,18 @@ void setup()
 
   //Use the measure indents function to see which indents are skinniest
   //Disable all the idents that are largest or ones you don't want to test
-  indentsToTry[0] = true; //0
-  indentsToTry[1] = true; //8
-  indentsToTry[2] = true; //16
-  indentsToTry[3] = true; //24
-  indentsToTry[4] = true; //33
-  indentsToTry[5] = true; //41
-  indentsToTry[6] = true; //50
-  indentsToTry[7] = true; //58
-  indentsToTry[8] = true; //66
-  indentsToTry[9] = true; //74
-  indentsToTry[10] = true; //83
-  indentsToTry[11] = true; //91
+  indentsToTry[0] = EEPROM.read(LOCATION_INDENT_0); //0
+  indentsToTry[1] = EEPROM.read(LOCATION_INDENT_1); //8
+  indentsToTry[2] = EEPROM.read(LOCATION_INDENT_2); //16
+  indentsToTry[3] = EEPROM.read(LOCATION_INDENT_3); //24
+  indentsToTry[4] = EEPROM.read(LOCATION_INDENT_4); //33
+  indentsToTry[5] = EEPROM.read(LOCATION_INDENT_5); //41
+  indentsToTry[6] = EEPROM.read(LOCATION_INDENT_6); //50
+  indentsToTry[7] = EEPROM.read(LOCATION_INDENT_7); //58
+  indentsToTry[8] = EEPROM.read(LOCATION_INDENT_8); //66
+  indentsToTry[9] = EEPROM.read(LOCATION_INDENT_9); //74
+  indentsToTry[10] = EEPROM.read(LOCATION_INDENT_10); //83
+  indentsToTry[11] = EEPROM.read(LOCATION_INDENT_11); //91
 
   //Calculate how many indents we need to attempt on discC
   maxCAttempts = 0;
@@ -155,12 +167,13 @@ void setup()
   if (discB < 0) discB += 100;
 
   clearDisplay();
-  showCombination(discA, discB, discC); //Update display
-
+  showCombination(24, 0, 66); //Display winning combination
 }
 
 void loop()
 {
+  char incoming;
+
   //Main serial control menu
   Serial.println();
   Serial.print(F("Combo to start at: "));
@@ -180,8 +193,40 @@ void loop()
   Serial.println(F("6) Set indents to test"));
   Serial.println(F("s) Start cracking"));
 
-  while (!Serial.available());
-  char incoming = Serial.read();
+  while (!Serial.available())
+  {
+    if (digitalRead(button) == LOW)
+    {
+      delay(50);
+      if (digitalRead(button) == LOW)
+      {
+        buttonPressed = true;
+        break;
+      }
+      else
+      {
+        buttonPressed = false;
+      }
+    }
+    else
+    {
+      buttonPressed = false;
+    }
+  }
+
+  if (buttonPressed == true)
+  {
+    Serial.println(F("Button pressed!"));
+
+    while (digitalRead(button) == false); //Wait for user to stop pressing button
+    buttonPressed = false; //Reset variable
+
+    incoming = 's'; //Act as if user pressed start cracking
+  }
+  else
+  {
+    incoming = Serial.read();
+  }
 
   if (incoming == '1')
   {
@@ -191,7 +236,29 @@ void loop()
 
     resetDial(); //Clear out everything
 
-    Serial.println("Should be at: 0");
+    Serial.println(F("Dial should be at: 0"));
+    Serial.print(F("Home offset is: "));
+    Serial.println(homeOffset);
+
+    int zeroLocation = 0;
+    while (1) //Loop until we have good input
+    {
+      Serial.print(F("Enter where dial is actually at: "));
+
+      while (!Serial.available()); //Wait for user input
+
+      Serial.setTimeout(1000); //Must be long enough for user to enter second character
+      zeroLocation = Serial.parseInt(); //Read user input
+
+      Serial.print(zeroLocation);
+      if (zeroLocation >= 0 && zeroLocation <= 99) break;
+      Serial.println(F(" out of bounds"));
+    }
+
+    Serial.println(F("\n\rSetting home offset to: "));
+    Serial.println(zeroLocation);
+
+    EEPROM.write(LOCATION_HOME_OFFSET, zeroLocation);
   }
   else if (incoming == '2')
   {
@@ -255,7 +322,7 @@ void loop()
     while (1) //Loop until exit
     {
       int indent = 0;
-      
+
       while (1) //Loop until we have valid input
       {
 
@@ -283,11 +350,27 @@ void loop()
         Serial.println(F(" out of bounds"));
       }
 
-      if(indent == 99) break; //User wants to exit
+      if (indent == 99) break; //User wants to exit
 
       //Flip it
-      if(indentsToTry[indent] == true) indentsToTry[indent] = false;
-      else indentsToTry[indent] = true;      
+      if (indentsToTry[indent] == true) indentsToTry[indent] = false;
+      else indentsToTry[indent] = true;
+
+      //Record current settings to EEPROM
+      byte memLocation = LOCATION_INDENT_0;
+      if(indent == 0) memLocation = LOCATION_INDENT_0;
+      if(indent == 1) memLocation = LOCATION_INDENT_1;
+      if(indent == 2) memLocation = LOCATION_INDENT_2;
+      if(indent == 3) memLocation = LOCATION_INDENT_3;
+      if(indent == 4) memLocation = LOCATION_INDENT_4;
+      if(indent == 5) memLocation = LOCATION_INDENT_5;
+      if(indent == 6) memLocation = LOCATION_INDENT_6;
+      if(indent == 7) memLocation = LOCATION_INDENT_7;
+      if(indent == 8) memLocation = LOCATION_INDENT_8;
+      if(indent == 9) memLocation = LOCATION_INDENT_9;
+      if(indent == 10) memLocation = LOCATION_INDENT_10;
+      if(indent == 11) memLocation = LOCATION_INDENT_11;
+      EEPROM.write(memLocation, indentsToTry[indent]);
     }
 
     //Calculate how many indents we need to attempt on discC
@@ -295,11 +378,15 @@ void loop()
     for (byte x = 0 ; x < 12 ; x++)
       if (indentsToTry[x] == true) maxCAttempts++;
   }
-  else if (incoming == 's')
+  else if (incoming == 's') //Start cracking!
   {
+    clearDisplay();
+    showCombination(discA, discB, discC); //Update display
+
     startTime = millis();
 
-    resetDiscsWithCurrentCombo(false); //Set the discs to the current combinations (user can set if needed from menu)
+    //Set the discs to the current combinations (user can set if needed from menu)
+    resetDiscsWithCurrentCombo(false); //Do not pause with messages
 
     while (1)
     {
