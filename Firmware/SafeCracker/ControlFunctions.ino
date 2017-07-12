@@ -136,8 +136,10 @@ void goHome()
   //Begin spinning
   setMotorSpeed(fastSearch);
 
+  delay(250);
+
   //If the photogate is already detected spin until we are out
-  if (flagDetected() == true)
+  /*if (flagDetected() == true)
   {
     //Serial.println("We're too close to the photogate");
     int currentDial = convertEncoderToDial(steps);
@@ -146,7 +148,7 @@ void goHome()
     setDial(currentDial, false); //Advance to 50 dial ticks away from here
 
     setMotorSpeed(fastSearch);
-  }
+  }*/
 
   while (flagDetected() == false) delayMicroseconds(1); //Spin freely
 
@@ -227,7 +229,7 @@ int convertEncoderToDial(int encoderValue)
 
   if (partial >= (84 / 2)) dialValue++; //36 < 42, so 28 is our final answer
 
-  if (dialValue > 99) dialValue = 0;
+  if (dialValue > 99) dialValue -= 100;
 
   return (dialValue);
 }
@@ -378,12 +380,18 @@ void announceSuccess()
   delay(150);
 }
 
-//Disc A is the safety disc that prevents you from feeling the edges of the wheels
+//Disc C is the safety disc that prevents you from feeling the edges of the wheels
 //It has 12 upper and 12 low indents which means 100/24 = 4.16 per lower indent
 //So it moves a bit across the wheel. We could do floats, instead we'll do a lookup
 //Values were found by hand: What number is in the middle of the indent?
+//And later found by using the findIndents() function - which then stores values to EEPROM
 int lookupIndentValues(int indentNumber)
 {
+  int indentCenterValue;
+  EEPROM.get(LOCATION_INDENT_DIAL_0 + (indentNumber * sizeof(int)), indentCenterValue); //addr, variable to put it in
+  return(convertEncoderToDial(indentCenterValue));
+
+  /*
   switch (indentNumber)
   {
     //Values found by measureIndents() function
@@ -400,24 +408,8 @@ int lookupIndentValues(int indentNumber)
     case 10: return (83); //81-84
     case 11: return (91); //90-93
     case 12: return (-1); //Not valid
-
-      /* Original values found by hand
-        case 0: return (0); //98 to 1 on the wheel
-        case 1: return (8); //6-9
-        case 2: return (16); //14-17
-        case 3: return (24); //23-26
-        case 4: return (32); //31-34
-        case 5: return (41); //39-42
-        case 6: return (49); //48-51
-        case 7: return (58); //56-59
-        case 8: return (66); //64-67
-        case 9: return (74); //73-76
-        case 10: return (83); //81-84
-        case 11: return (91); //90-93
-        case 12: return (-1); //Not valid
-      */
-
   }
+  */
 }
 
 //Print a message and wait for user to press a button

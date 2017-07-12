@@ -4,10 +4,14 @@
   nextCombination() - Every time this is called, we attempt the current combo and then advance to next
 
 */
+int combinationsAttempted = 0;
+
 
 //Given the current state of discs, advance to the next combo
 void nextCombination()
 {
+  combinationsAttempted++; //Increase the overall count
+  
   discCAttempts++; //There are as many as 12 indents to try.
 
   if (discCAttempts >= maxCAttempts) //Idents are exhausted, time to adjust discB
@@ -127,6 +131,13 @@ void nextCombination()
 
   Serial.print(", Handle position, ");
   Serial.print(handlePosition);
+
+  Serial.print(", attempted, ");
+  Serial.print(combinationsAttempted);
+
+  float secondsPerTest = (float)(millis() - startTime)/1000.0 / combinationsAttempted;
+  Serial.print(", seconds per attempt, ");
+  Serial.print(secondsPerTest);
 
   Serial.println();
 }
