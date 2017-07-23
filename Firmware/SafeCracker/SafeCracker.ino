@@ -11,10 +11,8 @@
   Motor current turning dial, speed = 50, = ~60 to 120mA
 
   TODO:
-  -home offset setting in eeprom
-  -indent testing in eeprom
-  servo pull force
-  find indents automatically
+  servo rest, pull, and open settings to eeprom
+  current combination to nvm
 */
 
 #include "nvm.h" //EEPROM locations for settings
@@ -41,16 +39,25 @@ const byte displayLatch = A2;
 const byte displayClock = A3;
 const byte displayData = A4;
 
-//Servo values were found using the testServo() function while the
+//Servo values are found using the testServo() function while the
 //cracker was deattached from the safe
-//Increase in numbers cause handle to go down
-//Resting is 5, which is analog read 133/106
-//Good pressure is 50, analog 203
-//Open is 75 and analog greater than 254
-//Max open is 175, analog around 450
-const byte servoRestingPosition = 15;
-const byte servoPressurePosition = 50; //40 has slippage during indent measuring
-const byte servoTryPosition = 80; //80 has handle position of 273
+//On the 1st configuration increasing numbers cause handle to go down
+//On the 2nd larger configuration, decreasing numbers cause handle to go down
+
+//Settings for 0.8 cubic ft. safe
+//const byte servoRestingPosition = 15; //Position not pulling/testing on handle
+//const byte servoPressurePosition = 50; //Position when doing indent measuring
+//const byte servoTryPosition = 80; //Position when testing handle
+
+//Settings for 1.2 cubic ft. safe
+const byte servoRestingPosition = 90; //Position not pulling/testing on handle
+const byte servoPressurePosition = 40; //Position when doing indent measuring
+const byte servoTryPosition = 70; //Position when testing handle
+
+const int timeServoApply = 500;  //ms for servo to apply pressure. 300 was too short on new safe.
+const int timeServoRelease = 500;  //Allow servo to release. 200 was too short on new safe. The pull back spring affects this
+
+int handlePosition; //Used to see how far handle moved when pulled on
 const int handleOpenPosition = 260; //Analog value. Must be less than analog value from servo testing.
 
 #define CCW 0
@@ -59,18 +66,14 @@ const int handleOpenPosition = 260; //Analog value. Must be less than analog val
 volatile int steps = 0; //Keeps track of encoder counts. 8400 per revolution so this can get big.
 boolean direction = CW; //steps goes up or down based on direction
 boolean previousDirection = CW; //Detects when direction changes to add some steps for encoder slack
-byte homeOffset = EEPROM.read(LOCATION_HOME_OFFSET); //After doing a goHome calibration, adjust this number up or down until dial is at zero
+byte homeOffset = 0; //Found by running findFlag(). Stored in nvm.
 
 //Because we're switching directions we need to add extra steps to take
 //up the slack in the encoder
 //The greater the adjustment the more negative it goes
-int switchDirectionAdjustment = (84 * 0) + 84/2; //Use 'Test dial control' to determine adjustment size
-//84 * 10 = Says 90 but is actually 85 (too negative)
-//84 * 2 = Says 33 but is actually 32 (undershoot)
+int switchDirectionAdjustment = (84 * 0) + 0; //Use 'Test dial control' to determine adjustment size
 //84 * 1 - 20 = Says 34 but is actually 33.5 (undershoot)
-//84 * 1 + 0 = Says 28 but is actually 27.5 (undershoot)
 //84 * 0 = Says 85 but is actually 85.9 (overshoot)
-//84 * 0 + 84/2 = Good
 
 //DiscA goes in CCW fashion during testing, increments 3 each new try.
 //We don't know if this is the center of the notch. If you exhaust the combination domain, adjust up or down one.
@@ -87,8 +90,6 @@ int discA = DISCA_START;
 int discB = DISCB_START;
 int discC = DISCC_START;
 
-boolean indentsToTry[12]; //Keeps track of the indents we want to try
-
 //Keeps track of the combos we need to try for each disc
 //byte maxAAttempts = 33; //Assume solution notch is 3 digits wide
 //byte maxBAttempts = 33; //Assume solution notch is 3 digits wide
@@ -101,18 +102,18 @@ byte discCAttempts = 0;
 
 long startTime; //Used to measure amount of time taken per test
 
-int handlePosition; //Used to see how far handle moved when pulled on
-
 boolean buttonPressed = false; //Keeps track of the 'GO' button.
 
-int indentValues[12]; //Encoder click for a given indent
+boolean indentsToTry[12]; //Keeps track of the indents we want to try
+int indentLocations[12]; //Encoder click for a given indent
 int indentWidths[12]; //Calculated width of a given indent
 int indentDepths[12]; //Not really used
-byte indentNumber[12]; //Used to sort indents once values are found
 
 void setup()
 {
   Serial.begin(115200);
+  Serial.println();
+  Serial.println();
   Serial.println("Safe Cracker");
 
   pinMode(motorReset, OUTPUT);
@@ -148,25 +149,41 @@ void setup()
   //Setup servo
   handleServo.attach(servo);
   handleServo.write(servoRestingPosition); //Goto the resting position (handle horizontal, door closed)
+  delay(timeServoRelease); //Allow servo to release
 
   randomSeed(analogRead(A5));
 
-  enableMotor(); //Turn on motor controller
+  //Load settings from EEPROM
+  homeOffset = EEPROM.read(LOCATION_HOME_OFFSET); //After doing a findFlag calibration, adjust this number up or down until dial is at zero
+  Serial.print(F("Home Offset: "));
+  Serial.println(homeOffset);
 
-  //Use the measure indents function to see which indents are skinniest
-  //Disable all the idents that are largest or ones you don't want to test
-  indentsToTry[0] = EEPROM.read(LOCATION_TEST_INDENT_0); //0
-  indentsToTry[1] = EEPROM.read(LOCATION_TEST_INDENT_1); //8
-  indentsToTry[2] = EEPROM.read(LOCATION_TEST_INDENT_2); //16
-  indentsToTry[3] = EEPROM.read(LOCATION_TEST_INDENT_3); //24
-  indentsToTry[4] = EEPROM.read(LOCATION_TEST_INDENT_4); //33
-  indentsToTry[5] = EEPROM.read(LOCATION_TEST_INDENT_5); //41
-  indentsToTry[6] = EEPROM.read(LOCATION_TEST_INDENT_6); //50
-  indentsToTry[7] = EEPROM.read(LOCATION_TEST_INDENT_7); //58
-  indentsToTry[8] = EEPROM.read(LOCATION_TEST_INDENT_8); //66
-  indentsToTry[9] = EEPROM.read(LOCATION_TEST_INDENT_9); //74
-  indentsToTry[10] = EEPROM.read(LOCATION_TEST_INDENT_10); //83
-  indentsToTry[11] = EEPROM.read(LOCATION_TEST_INDENT_11); //91
+  Serial.println(F("Indent data"));
+  for (int indentNumber = 0 ; indentNumber < 12 ; indentNumber++)
+  {
+    indentsToTry[indentNumber] = EEPROM.read(LOCATION_TEST_INDENT_0 + indentNumber); //Boolean
+    EEPROM.get(LOCATION_INDENT_DIAL_0 + (indentNumber * 2), indentLocations[indentNumber]); //Addr, loc. Encoder click for a given indent
+
+    Serial.print(F("IndentNum["));
+    Serial.print(indentNumber);
+    Serial.print(F("] Encoder["));
+    Serial.print(indentLocations[indentNumber]);
+    Serial.print(F("] / Dial["));
+    Serial.print(convertEncoderToDial(indentLocations[indentNumber]));
+    Serial.print(F("] / Width["));
+    Serial.print(indentWidths[indentNumber]);
+    Serial.print(F("] / Depth["));
+    Serial.print(indentDepths[indentNumber]);
+    Serial.print(F("] Test["));
+
+    //Print Test if indent will be tested
+    if (indentsToTry[indentNumber] == true) Serial.print("Y");
+    else Serial.print("N");
+    Serial.print(F("]"));
+
+    Serial.println();
+
+  }
 
   //Calculate how many indents we need to attempt on discC
   maxCAttempts = 0;
@@ -175,6 +192,13 @@ void setup()
 
   //At startup discB may be negative. Fix it.
   if (discB < 0) discB += 100;
+
+  //Tell dial to go to zero
+  enableMotor(); //Turn on motor controller
+  findFlag(); //Find the flag
+  //Adjust steps with the real-world offset
+  steps = (84 * homeOffset); //84 * the number the dial sits on when 'home'
+  setDial(0, false); //Make dial go to zero
 
   clearDisplay();
   showCombination(24, 0, 66); //Display winning combination
@@ -194,11 +218,9 @@ void loop()
   Serial.print(discC);
   Serial.println();
 
-  Serial.println(F("Menu:"));
   Serial.println(F("1) Go home and reset dial"));
   Serial.println(F("2) Test dial control"));
   Serial.println(F("3) View indent positions"));
-  Serial.println(F("4) Find indent positions"));
   Serial.println(F("5) Measure indents"));
   Serial.println(F("6) Set indents to test"));
   Serial.println(F("7) Set starting combos"));
@@ -244,7 +266,7 @@ void loop()
   if (incoming == '1')
   {
     //Go to starting conditions
-    goHome(); //Detect magnet and center the dial
+    findFlag(); //Detect magnet and center the dial
     delay(100);
 
     Serial.print(F("Home offset is: "));
@@ -265,13 +287,18 @@ void loop()
       Serial.println(F(" out of bounds"));
     }
 
+    homeOffset = zeroLocation;
+
     Serial.print(F("\n\rSetting home offset to: "));
-    Serial.println(zeroLocation);
+    Serial.println(homeOffset);
 
-    EEPROM.write(LOCATION_HOME_OFFSET, zeroLocation);
+    EEPROM.write(LOCATION_HOME_OFFSET, homeOffset);
 
-    //setDial(0, true); //Turn to zero with an extra spin
-    resetDial(); //Go to dial position zero
+    //Adjust steps with the real-world offset
+    steps = (84 * homeOffset); //84 * the number the dial sits on when 'home'
+
+    setDial(0, true); //Turn to zero with an extra spin
+    //resetDial(); //Go to dial position zero
 
     Serial.println(F("Dial should be at: 0"));
   }
@@ -290,10 +317,6 @@ void loop()
       Serial.print(F("]"));
       Serial.println();
     }
-  }
-  else if (incoming == '4')
-  {
-    findIndents(); //Locate the center of the 12 indents
   }
   else if (incoming == '5')
   {
@@ -328,8 +351,15 @@ void loop()
         {
           Serial.print(x);
           Serial.print(": ");
-          if (indentsToTry[x] == true) Serial.print("Test");
-          else Serial.print("-");
+
+          //Print Test if indent will be tested
+          if (indentsToTry[x] == true) Serial.print("Y");
+          else Serial.print("N");
+
+          //Print dial value of this indent
+          Serial.print(" / ");
+          Serial.print(convertEncoderToDial(indentLocations[x]));
+
           Serial.println();
         }
         Serial.println("Which indent to change?");
@@ -398,7 +428,7 @@ void loop()
   }
   else if (incoming == '9')
   {
-    
+
     setDial(0, false); //Turn to zero without extra spin
 
     //Test center point of each indent
@@ -410,11 +440,11 @@ void loop()
 
       int encoderValue;
       EEPROM.get(LOCATION_INDENT_DIAL_0 + (indentNumber * 2), encoderValue);
-      
+
       //84 allows bar to hit indent but just barely
       //* 2 lines the bar with indent nicely
       encoderValue += 84 * 2;
-      
+
       gotoStep(encoderValue, false); //Goto that encoder value, no extra spin
 
       Serial.print("dialValue: ");
@@ -424,12 +454,20 @@ void loop()
       Serial.println(encoderValue);
 
       handleServo.write(servoPressurePosition); //Apply pressure to handle
-      delay(300); //Wait for servo to move
+      delay(timeServoApply); //Wait for servo to move
       handleServo.write(servoRestingPosition); //Release servo
-      delay(200); //Allow servo to release
+      delay(timeServoRelease); //Allow servo to release
     }
     Serial.println();
 
+  }
+  else if (incoming == 'a')
+  {
+    handleServo.write(servoRestingPosition);
+  }
+  else if (incoming == 'z')
+  {
+    handleServo.write(servoTryPosition);
   }
   else if (incoming == 's') //Start cracking!
   {

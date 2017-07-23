@@ -3,7 +3,7 @@
 
   setDial - go to a given dial position (0 to 99)
   resetDial - spin the dial twice to move reset discs A, B, and C. Stop at 0.
-  goHome - tell dial to return to where the flag interruts the photogate. Depending on how the robot is attached to dial, this may be true zero or an offset
+  findFlag - tell dial to return to where the flag interruts the photogate. Depending on how the robot is attached to dial, this may be true zero or an offset
   setDiscsToStart - Go home, clear dial, go to starting numbers
 
   Supporting functions:
@@ -22,8 +22,11 @@
 //Adding a full rotation will add a 360 degree full rotation
 int gotoStep(int stepGoal, boolean addAFullRotation)
 {
-  int coarseSpeed = 200; //Speed at which we get to coarse window. 150, 200 works. 210, 230 fails
-  int coarseWindow = 1000; //Once we are within this amount, switch to fine adjustment
+  //Coarse speed and window control how fast we arrive at the digit on the dial
+  //Having too small of a window or too fast of an attack will make the dial 
+  //overshoot. 
+  int coarseSpeed = 250; //Speed at which we get to coarse window (0-255). 150, 200 works. 210, 230 fails
+  int coarseWindow = 1250; //Once we are within this amount, switch to fine adjustment
   int fineSpeed = 50; //Less than 50 may not have enough torque
   int fineWindow = 32; //One we are within this amount, stop searching
 
@@ -126,7 +129,7 @@ int setDial(int dialValue, boolean extraSpin)
 }
 
 //Spin until we detect the photo gate trigger
-void goHome()
+void findFlag()
 {
   byte fastSearch = 255; //Speed at which we locate photogate
   byte slowSearch = 50;
@@ -139,16 +142,16 @@ void goHome()
   delay(250);
 
   //If the photogate is already detected spin until we are out
-  /*if (flagDetected() == true)
+  if (flagDetected() == true)
   {
-    //Serial.println("We're too close to the photogate");
+    Serial.println(F("We're too close to the photogate"));
     int currentDial = convertEncoderToDial(steps);
     currentDial += 50;
     if (currentDial > 100) currentDial -= 100;
     setDial(currentDial, false); //Advance to 50 dial ticks away from here
 
     setMotorSpeed(fastSearch);
-  }*/
+  }
 
   while (flagDetected() == false) delayMicroseconds(1); //Spin freely
 
@@ -173,7 +176,7 @@ void goHome()
 void resetDiscsWithCurrentCombo(boolean pause)
 {
   //Go to starting conditions
-  goHome(); //Detect magnet and center the dial
+  findFlag(); //Detect magnet and center the dial
   delay(300);
 
   resetDial(); //Clear out everything
@@ -287,13 +290,13 @@ boolean tryHandle()
   //Ok, we failed
   //Return to resting position
   handleServo.write(servoRestingPosition);
-
-  delay(500); //Wait for servo to return to reseting position
+  delay(timeServoRelease); //Allow servo to release. 200 was too short on new safe
 
   return (false);
 }
 
 //Sets the motor speed
+//0 is no turn, 255 is max
 void setMotorSpeed(int speedValue)
 {
   analogWrite(motorPWM, speedValue);

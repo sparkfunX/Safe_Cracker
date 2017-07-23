@@ -4,7 +4,7 @@
 
 //Spins the motor while we tweak the servo up/down to detect binding force and servo position
 //Press x to exit
-//How to use: Attach cracker to safe. As motor spins increase handle pressure using a/z until the gear binds in an indent. 
+//How to use: Attach cracker to safe. As motor spins increase handle pressure using a/z until the gear binds in an indent.
 //Add 10 or 20 and this is servoPressurePosition global variable.
 //Add 40 or 50 and this is servoTryPosition.
 //*Remove* cracker from safe and adjust the servo up/down. Get the 3d printed handle to 45 degrees. The analog reading
@@ -17,7 +17,7 @@ void testServo()
 
   enableMotor(); //Turn on motor controller
 
-  int servo = 5;
+  int servo = servoRestingPosition;
   handleServo.write(servo);
 
   long timeSinceLastMovement = millis();
@@ -50,8 +50,8 @@ void testServo()
       {
         setMotorSpeed(0); //Stop!
         handleServo.write(servoRestingPosition); //Goto the resting position (handle horizontal, door closed)
-        delay(300); //Allow servo to move
-        return; 
+        delay(timeServoRelease); //Allow servo to move
+        return;
       }
 
       if (servo < 0) servo = 0;
@@ -61,9 +61,9 @@ void testServo()
     }
     int handlePosition = averageAnalogRead(servoPosition);
 
-    Serial.print("servo: ");
+    Serial.print(F("servo: "));
     Serial.print(servo);
-    Serial.print(" / handlePosition: ");
+    Serial.print(F(" / handlePosition: "));
     Serial.print(handlePosition);
     Serial.println();
 
@@ -80,20 +80,25 @@ void positionTesting()
 {
   int randomDial;
 
-  randomDial = random(0, 100);
-  turnCCW();
-  setDial(randomDial, false);
+  for (int x = 0 ; x < 4 ; x++)
+  {
+    randomDial = random(0, 100);
+    randomDial = 25;
+    turnCCW();
+    setDial(randomDial, false);
 
-  Serial.print("Dial should be at: ");
-  Serial.println(convertEncoderToDial(steps));
-  messagePause("Verify then press key to continue");
+    Serial.print(F("Dial should be at: "));
+    Serial.println(convertEncoderToDial(steps));
+    messagePause("Verify then press key to continue");
 
-  randomDial = random(0, 100);
-  turnCW();
-  setDial(randomDial, false);
+    randomDial = random(0, 100);
+    randomDial = 75;
+    turnCW();
+    setDial(randomDial, false);
 
-  Serial.print("Dial should be at: ");
-  Serial.println(convertEncoderToDial(steps));
-  messagePause("Verify then press key to exit");
+    Serial.print(F("Dial should be at: "));
+    Serial.println(convertEncoderToDial(steps));
+    messagePause("Verify then press key to exit");
+  }
 }
 

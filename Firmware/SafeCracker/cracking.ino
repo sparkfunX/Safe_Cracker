@@ -11,7 +11,7 @@ int combinationsAttempted = 0;
 void nextCombination()
 {
   combinationsAttempted++; //Increase the overall count
-  
+
   discCAttempts++; //There are as many as 12 indents to try.
 
   if (discCAttempts >= maxCAttempts) //Idents are exhausted, time to adjust discB
@@ -121,12 +121,15 @@ void nextCombination()
     announceSuccess();
     disableMotor(); //Power down motor
 
-    Serial.println(F("Pausing"));
+    Serial.println(F("Pausing. Press key to release handle."));
     while (!Serial.available());
     Serial.read();
-    Serial.println(F("Resuming"));
 
-    enableMotor(); //Power up motor
+    //Return to resting position
+    handleServo.write(servoRestingPosition);
+    delay(timeServoRelease); //Allow servo to release. 200 was too short on new safe
+
+    while(1); //Freeze!
   }
 
   Serial.print(", Handle position, ");
@@ -135,7 +138,7 @@ void nextCombination()
   Serial.print(", attempted, ");
   Serial.print(combinationsAttempted);
 
-  float secondsPerTest = (float)(millis() - startTime)/1000.0 / combinationsAttempted;
+  float secondsPerTest = (float)(millis() - startTime) / 1000.0 / combinationsAttempted;
   Serial.print(", seconds per attempt, ");
   Serial.print(secondsPerTest);
 
