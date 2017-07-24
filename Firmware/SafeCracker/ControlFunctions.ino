@@ -23,8 +23,8 @@
 int gotoStep(int stepGoal, boolean addAFullRotation)
 {
   //Coarse speed and window control how fast we arrive at the digit on the dial
-  //Having too small of a window or too fast of an attack will make the dial 
-  //overshoot. 
+  //Having too small of a window or too fast of an attack will make the dial
+  //overshoot.
   int coarseSpeed = 250; //Speed at which we get to coarse window (0-255). 150, 200 works. 210, 230 fails
   int coarseWindow = 1250; //Once we are within this amount, switch to fine adjustment
   int fineSpeed = 50; //Less than 50 may not have enough torque
@@ -187,20 +187,20 @@ void resetDiscsWithCurrentCombo(boolean pause)
   int discAIsAt = setDial(discA, false);
   Serial.print("DiscA is at: ");
   Serial.println(discAIsAt);
-  if(pause == true) messagePause("Verify disc position");
+  if (pause == true) messagePause("Verify disc position");
 
   turnCW();
   //Turn past disc B one extra spin
   int discBIsAt = setDial(discB, true);
   Serial.print("DiscB is at: ");
   Serial.println(discBIsAt);
-  if(pause == true) messagePause("Verify disc position");
+  if (pause == true) messagePause("Verify disc position");
 
   turnCCW();
   int discCIsAt = setDial(discC, false);
   Serial.print("DiscC is at: ");
   Serial.println(discCIsAt);
-  if(pause == true) messagePause("Verify disc position");
+  if (pause == true) messagePause("Verify disc position");
 
   discCAttempts = -1; //Reset
 }
@@ -254,7 +254,7 @@ void resetDial()
   setDial(0, true); //Turn to zero with an extra spin
 
   //Second spin
-  
+
   //If we're too close to zero, add 50
   if (convertEncoderToDial(steps) > 97 || convertEncoderToDial(steps) < 4)
   {
@@ -276,16 +276,24 @@ boolean tryHandle()
 {
   //Attempt to pull down on handle
   handleServo.write(servoTryPosition);
-
-  delay(500); //Wait for servo to move, but don't let it stall for too long and burn out
+  delay(timeServoApply); //Wait for servo to move, but don't let it stall for too long and burn out
 
   //Check if we're there
-  handlePosition = averageAnalogRead(servoPosition);
-  if (handlePosition > handleOpenPosition)
+  if (digitalRead(servoPositionButton) == LOW)
   {
     //Holy smokes we're there!
     return (true);
   }
+
+  /*
+    handlePosition = averageAnalogRead(servoPosition);
+    //if (handlePosition > handleOpenPosition) //Used on old servo setup
+    if (handlePosition < handleOpenPosition)
+    {
+      //Holy smokes we're there!
+      return (true);
+    }
+  */
 
   //Ok, we failed
   //Return to resting position
@@ -392,11 +400,11 @@ int lookupIndentValues(int indentNumber)
 {
   int indentCenterValue;
   EEPROM.get(LOCATION_INDENT_DIAL_0 + (indentNumber * sizeof(int)), indentCenterValue); //addr, variable to put it in
-  return(convertEncoderToDial(indentCenterValue));
+  return (convertEncoderToDial(indentCenterValue));
 
   /*
-  switch (indentNumber)
-  {
+    switch (indentNumber)
+    {
     //Values found by measureIndents() function
     case 0: return (99); //98 to 1 on the wheel
     case 1: return (8); //6-9
@@ -411,7 +419,7 @@ int lookupIndentValues(int indentNumber)
     case 10: return (83); //81-84
     case 11: return (91); //90-93
     case 12: return (-1); //Not valid
-  }
+    }
   */
 }
 

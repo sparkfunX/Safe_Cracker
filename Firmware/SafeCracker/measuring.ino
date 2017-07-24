@@ -148,7 +148,7 @@ void measureIndent(int &indentLocation, int &indentWidth, int &indentDepth)
   delay(100); //Alow motor to stop spinning
 
   //Take a reading on how deep the handle got
-  handlePosition = averageAnalogRead(servoPosition);
+  //handlePosition = averageAnalogRead(servoPosition);
 
   steps -= switchDirectionAdjustment;
   if (steps < 0) steps += 8400;
@@ -179,7 +179,7 @@ void measureIndent(int &indentLocation, int &indentWidth, int &indentDepth)
   delay(100); //Alow motor to stop spinning
 
   //Take a reading on how deep the handle got
-  handlePosition = averageAnalogRead(servoPosition);
+  //handlePosition = averageAnalogRead(servoPosition);
 
   steps -= switchDirectionAdjustment;
   if (steps < 0) steps += 8400;
@@ -217,7 +217,7 @@ void measureIndent(int &indentLocation, int &indentWidth, int &indentDepth)
         Serial.println(convertEncoderToDial(centerOfIndent));
   */
 
-  indentDepth += handlePosition; //Record handle depth
+  //indentDepth += handlePosition; //Record handle depth
   indentWidth += sizeOfIndent; //Record this value to what the user passed us
 
   indentLocation = edgeFar2 + (sizeOfIndent / 2); //Find center of indent

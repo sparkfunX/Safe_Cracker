@@ -6,7 +6,6 @@
 */
 int combinationsAttempted = 0;
 
-
 //Given the current state of discs, advance to the next combo
 void nextCombination()
 {

@@ -34,7 +34,7 @@ const byte buzzer = 11;
 const byte LED = 13;
 
 const byte currentSense = A0;
-const byte servoPosition = A1;
+const byte servoPositionButton = A1;
 const byte displayLatch = A2;
 const byte displayClock = A3;
 const byte displayData = A4;
@@ -52,13 +52,13 @@ const byte displayData = A4;
 //Settings for 1.2 cubic ft. safe
 const byte servoRestingPosition = 90; //Position not pulling/testing on handle
 const byte servoPressurePosition = 40; //Position when doing indent measuring
-const byte servoTryPosition = 70; //Position when testing handle
+const byte servoTryPosition = 50; //Position when testing handle
 
-const int timeServoApply = 500;  //ms for servo to apply pressure. 300 was too short on new safe.
-const int timeServoRelease = 500;  //Allow servo to release. 200 was too short on new safe. The pull back spring affects this
+const int timeServoApply = 250;  //ms for servo to apply pressure. 300 was too short on new safe.
+const int timeServoRelease = 250;  //Allow servo to release. 200 was too short on new safe. The pull back spring affects this
 
 int handlePosition; //Used to see how far handle moved when pulled on
-const int handleOpenPosition = 260; //Analog value. Must be less than analog value from servo testing.
+//const int handleOpenPosition = 187; //Analog value. Must be less than analog value from servo testing.
 
 #define CCW 0
 #define CW 1
@@ -128,7 +128,7 @@ void setup()
   pinMode(LED, OUTPUT);
 
   pinMode(currentSense, INPUT);
-  pinMode(servoPosition, INPUT);
+  pinMode(servoPositionButton, INPUT_PULLUP);
 
   pinMode(photo, INPUT_PULLUP);
 
