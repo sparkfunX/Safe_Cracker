@@ -72,6 +72,73 @@ void testServo()
   }
 }
 
+//Pulls down on handle using current settings
+//Reports if button has been pressed
+//To use: before running function identify the solution slot
+//Dial will turn to slot
+//Press any letter to cause servo to pull on handle
+//If button is pressed, it will print Pressed!!
+//Adjust button down just below level of being pressed when handle is normally pulled on
+//Press x to exit
+void testHandleButton(void)
+{
+  //Find the indent to test
+  int solutionDiscC = 0;
+  for (int x = 0 ; x < 12 ; x++)
+  {
+    if (indentsToTry[x] == true)
+      solutionDiscC = convertEncoderToDial(indentLocations[x]);
+  }
+  setDial(solutionDiscC, false); //Goto this dial location
+
+  Serial.println("x to exit");
+  Serial.println("a to pull on handle");
+  Serial.println("z to release handle");
+
+  int pressedCounter = 0;
+  while (1)
+  {
+    if (Serial.available())
+    {
+      byte incoming = Serial.read();
+      if (incoming == 'x')
+      {
+        //Release handle
+        handleServo.write(servoRestingPosition); //Goto the resting position (handle horizontal, door closed)
+        delay(timeServoRelease); //Allow servo to release
+
+        return; //Exit
+      }
+      else if (incoming == 'a')
+      {
+        //Pull on handle
+        handleServo.write(servoTryPosition);
+        delay(timeServoApply); //Allow servo to move
+      }
+      else if (incoming == 'z')
+      {
+        //Release handle
+        handleServo.write(servoRestingPosition); //Goto the resting position (handle horizontal, door closed)
+        delay(timeServoRelease); //Allow servo to release
+      }
+    }
+
+    if (digitalRead(servoPositionButton) == LOW)
+    {
+      pressedCounter++;
+      Serial.print("Pressed! ");
+      Serial.println(pressedCounter); //To have something that changes
+    }
+
+    for(byte x = 0 ; x < 100 ; x++)
+    {
+      if (digitalRead(servoPositionButton) == LOW) break;
+      delay(1);
+    }
+  }
+
+}
+
 //Test to see if we can repeatably go to a dial position
 //Turns dial to random CW and CCW position and asks user to verify.
 //How to use: Attach cracker to safe. Home the dial using the menu function. Then run this

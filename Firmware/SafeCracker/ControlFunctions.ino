@@ -140,11 +140,6 @@ void findFlag()
 
   turnCW();
 
-  //Begin spinning
-  setMotorSpeed(fastSearch);
-
-  delay(250);
-
   //If the photogate is already detected spin until we are out
   if (flagDetected() == true)
   {
@@ -153,22 +148,23 @@ void findFlag()
     currentDial += 50;
     if (currentDial > 100) currentDial -= 100;
     setDial(currentDial, false); //Advance to 50 dial ticks away from here
-
-    setMotorSpeed(fastSearch);
   }
+
+  //Begin spinning
+  setMotorSpeed(fastSearch);
 
   while (flagDetected() == false) delayMicroseconds(1); //Spin freely
 
   //Ok, we just zipped past the gate. Stop and spin slowly backward
   setMotorSpeed(0);
-  delay(250); //Wait for motor to stop spinning
+  delay(timeMotorStop); //Wait for motor to stop spinning
   turnCCW();
 
   setMotorSpeed(slowSearch);
   while (flagDetected() == false) delayMicroseconds(1); //Find flag
 
   setMotorSpeed(0);
-  delay(250); //Wait for motor to stop
+  delay(timeMotorStop); //Wait for motor to stop
 
   //Adjust steps with the real-world offset
   steps = (84 * homeOffset); //84 * the number the dial sits on when 'home'
@@ -244,21 +240,26 @@ int convertEncoderToDial(int encoderValue)
 //Turn CCW, past zero, then continue until we return to zero
 void resetDial()
 {
+  disableMotor();
+
   turnCCW();
 
-  //Where ever we are, go 50 away, four times (two spins)
-  //Then continue to zero
-  for(byte x = 0 ; x < 4 ; x++)
+  setMotorSpeed(255); //Go fast!
+  enableMotor();
+
+  //Spin until 8400*2 steps have gone by
+  int deltaSteps = 0;
+  while (deltaSteps < (8400 * 2))
   {
-    int nextSpot = convertEncoderToDial(steps); //Tell us our spot currently
+    int startingSteps = steps; //Remember where we started
+    delay(100); //Let motor spin for awhile
 
-    nextSpot += 50;
-    if(nextSpot > 99) nextSpot -= 100;
-
-    setDial(nextSpot, false); //Advance 50 ticks away
+    if (steps >= startingSteps) deltaSteps += steps - startingSteps;
+    else deltaSteps += (8400 - startingSteps + steps);
   }
-
-  setDial(0, false); //Keep going until we get to zero
+  
+  setMotorSpeed(0); //Stop
+  delay(timeMotorStop); //Alow motor to spin to a stop
 
   previousDirection = CCW;
 }

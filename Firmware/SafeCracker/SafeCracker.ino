@@ -54,7 +54,7 @@ const byte servoRestingPosition = 100; //Position not pulling/testing on handle
 const byte servoPressurePosition = 40; //Position when doing indent measuring
 const byte servoTryPosition = 50; //Position when testing handle
 
-const int timeServoApply = 250;  //ms for servo to apply pressure. 300 was too short on new safe.
+const int timeServoApply = 350;  //ms for servo to apply pressure. 300 was too short on new safe.
 const int timeServoRelease = 250;  //Allow servo to release. 200 was too short on new safe. The pull back spring affects this
 const int timeMotorStop = 200; //ms for motor to stop spinning after stop command
 
@@ -87,13 +87,13 @@ int switchDirectionAdjustment = (84 * 0) + 0; //Use 'Test dial control' to deter
 #define DISCC_START 0
 
 //These are the combination numbers we are attempting
-//int discA = DISCA_START;
-//int discB = DISCB_START;
-//int discC = DISCC_START;
+int discA = DISCA_START;
+int discB = DISCB_START;
+int discC = DISCC_START;
 
-int discA = 30; //Testing only. Don't use.
-int discB = 55;
-int discC = 47;
+//int discA = 30; //Testing only. Don't use.
+//int discB = 55;
+//int discC = 47;
 
 //Keeps track of the combos we need to try for each disc
 //byte maxAAttempts = 33; //Assume solution notch is 3 digits wide
@@ -226,10 +226,11 @@ void loop()
   Serial.println(F("1) Go home and reset dial"));
   Serial.println(F("2) Test dial control"));
   Serial.println(F("3) View indent positions"));
-  Serial.println(F("5) Measure indents"));
-  Serial.println(F("6) Set indents to test"));
-  Serial.println(F("7) Set starting combos"));
-  Serial.println(F("8) Calibrate handle servo"));
+  Serial.println(F("4) Measure indents"));
+  Serial.println(F("5) Set indents to test"));
+  Serial.println(F("6) Set starting combos"));
+  Serial.println(F("7) Calibrate handle servo"));
+  Serial.println(F("8) Test handle button"));
   Serial.println(F("9) Test indent centers"));
   Serial.println(F("s) Start cracking"));
 
@@ -271,7 +272,7 @@ void loop()
   if (incoming == '1')
   {
     //Go to starting conditions
-    findFlag(); //Detect magnet and center the dial
+    findFlag(); //Detect the flag and center the dial
     delay(100);
 
     Serial.print(F("Home offset is: "));
@@ -322,7 +323,7 @@ void loop()
       Serial.println();
     }
   }
-  else if (incoming == '5')
+  else if (incoming == '4')
   {
     //Measure indents
 
@@ -343,7 +344,7 @@ void loop()
 
     measureDiscC(measurements); //Try to measure the idents in disc C. Give function the number of tests to run (get average).
   }
-  else if (incoming == '6')
+  else if (incoming == '5')
   {
     while (1) //Loop until exit
     {
@@ -396,7 +397,7 @@ void loop()
     for (byte x = 0 ; x < 12 ; x++)
       if (indentsToTry[x] == true) maxCAttempts++;
   }
-  else if (incoming == '7')
+  else if (incoming == '6')
   {
     //Set starting combos
     for (byte x = 0 ; x < 3 ; x++)
@@ -426,9 +427,13 @@ void loop()
     }
 
   }
-  else if (incoming == '8')
+  else if (incoming == '7')
   {
     testServo(); //Infinite loop to test servo
+  }
+  else if (incoming == '8')
+  {
+    testHandleButton(); //Just pull down on handle and vary distance to hit open button
   }
   else if (incoming == '9')
   {
@@ -481,7 +486,7 @@ void loop()
     startTime = millis();
 
     //Set the discs to the current combinations (user can set if needed from menu)
-    resetDiscsWithCurrentCombo(true); //Do not pause with messages
+    resetDiscsWithCurrentCombo(false); //Do not pause with messages
 
     while (1)
     {

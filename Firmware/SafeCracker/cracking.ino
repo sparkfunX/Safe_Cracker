@@ -37,6 +37,8 @@ void nextCombination()
 
         Serial.println("Resetting dial...");
 
+        findFlag(); //Re-home the dial between large finds
+
         //With this new A value, reset all discs
         //resetDiscsWithCurrentCombo(true); //Do pauses to verify positions
         resetDiscsWithCurrentCombo(false);
@@ -55,9 +57,9 @@ void nextCombination()
       if (discB < 0) discB += 100;
 
       int discBIsAt = setDial(discB, false);
-      Serial.print("DiscB is at: ");
-      Serial.println(discBIsAt);
-      messagePause("Check dial position");
+      //Serial.print("DiscB is at: ");
+      //Serial.println(discBIsAt);
+      //messagePause("Check dial position");
 
       //You can't have a combo that is X-45-46: too close.
       //There is a cross over point that comes when discB combo crosses
@@ -66,7 +68,8 @@ void nextCombination()
       boolean crossesB = checkCrossing(discC, 3, discB); //Check to see if the next B will cross A
       if (crossesB == true) //We need to skip this test
       {
-        messagePause("skipping this discC");
+        //Do nothing
+        //messagePause("skipping this discC");
       }
       else
       {
