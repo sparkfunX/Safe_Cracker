@@ -50,13 +50,13 @@ const byte displayData = A4;
 
 //Settings for 1.2 cubic ft. safe
 //On the 2nd larger configuration, decreasing numbers cause handle to go down
-const byte servoRestingPosition = 100; //Position not pulling/testing on handle
-const byte servoPressurePosition = 40; //Position when doing indent measuring
-const byte servoTryPosition = 50; //Position when testing handle
+int servoRestingPosition = 100; //Position not pulling/testing on handle
+int servoTryPosition = 50; //Position when testing handle
+int servoHighPressurePosition = 40; //Position when doing indent measuring
 
-const int timeServoApply = 350;  //ms for servo to apply pressure. 300 was too short on new safe.
-const int timeServoRelease = 250;  //Allow servo to release. 200 was too short on new safe. The pull back spring affects this
-const int timeMotorStop = 200; //ms for motor to stop spinning after stop command
+const int timeServoApply = 350;  //ms for servo to apply pressure. 350 works
+const int timeServoRelease = 200;  //Allow servo to release. 250 works
+const int timeMotorStop = 125; //ms for motor to stop spinning after stop command. 200 works
 
 int handlePosition; //Used to see how far handle moved when pulled on
 //const int handleOpenPosition = 187; //Analog value. Must be less than analog value from servo testing.
@@ -151,13 +151,6 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(encoderA), countA, CHANGE);
   attachInterrupt(digitalPinToInterrupt(encoderB), countB, CHANGE);
 
-  //Setup servo
-  handleServo.attach(servo);
-  handleServo.write(servoRestingPosition); //Goto the resting position (handle horizontal, door closed)
-  delay(timeServoRelease); //Allow servo to release
-
-  randomSeed(analogRead(A5));
-
   //Load settings from EEPROM
   homeOffset = EEPROM.read(LOCATION_HOME_OFFSET); //After doing a findFlag calibration, adjust this number up or down until dial is at zero
   Serial.print(F("Home Offset: "));
@@ -189,6 +182,42 @@ void setup()
     Serial.println();
 
   }
+
+  //Get servo settings
+  EEPROM.get(LOCATION_SERVO_REST, servoRestingPosition);
+  EEPROM.get(LOCATION_SERVO_TEST_PRESSURE, servoTryPosition);
+  EEPROM.get(LOCATION_SERVO_HIGH_PRESSURE, servoHighPressurePosition);
+
+  //Validate settings
+  if (servoRestingPosition > 250 || servoRestingPosition < 0)
+  {
+    //New board and/or EEPROM has not been set
+    //Assign defaults
+    servoRestingPosition = 100;
+    servoTryPosition = 50;
+    servoHighPressurePosition = 40;
+
+    //Record these defaults to EEPROM
+    EEPROM.put(LOCATION_SERVO_REST, servoRestingPosition);
+    EEPROM.put(LOCATION_SERVO_TEST_PRESSURE, servoTryPosition);
+    EEPROM.put(LOCATION_SERVO_HIGH_PRESSURE, servoHighPressurePosition);
+  }
+
+  Serial.print(F("servo: resting["));
+  Serial.print(servoRestingPosition);
+  Serial.print(F("] try["));
+  Serial.print(servoTryPosition);
+  Serial.print(F("] HighPressure["));
+  Serial.print(servoHighPressurePosition);
+  Serial.print(F("]"));
+  Serial.println();
+
+  //Setup servo
+  handleServo.attach(servo);
+  handleServo.write(servoRestingPosition); //Goto the resting position (handle horizontal, door closed)
+  delay(timeServoRelease * 3); //Allow servo to release, may be in solution slot
+
+  randomSeed(analogRead(A5));
 
   //Calculate how many indents we need to attempt on discC
   maxCAttempts = 0;
@@ -273,7 +302,6 @@ void loop()
   {
     //Go to starting conditions
     findFlag(); //Detect the flag and center the dial
-    delay(100);
 
     Serial.print(F("Home offset is: "));
     Serial.println(homeOffset);
@@ -429,7 +457,7 @@ void loop()
   }
   else if (incoming == '7')
   {
-    testServo(); //Infinite loop to test servo
+    testServo();
   }
   else if (incoming == '8')
   {
@@ -462,7 +490,7 @@ void loop()
       Serial.print(" encoderValue: ");
       Serial.println(encoderValue);
 
-      handleServo.write(servoPressurePosition); //Apply pressure to handle
+      handleServo.write(servoTryPosition); //Apply pressure to handle
       delay(timeServoApply); //Wait for servo to move
       handleServo.write(servoRestingPosition); //Release servo
       delay(timeServoRelease); //Allow servo to release

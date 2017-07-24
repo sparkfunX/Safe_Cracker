@@ -103,10 +103,10 @@ void nextCombination()
 
   showCombination(discA, discB, discC); //Update display
 
-  Serial.print("Time, ");
+  //Serial.print("Time, ");
   Serial.print(millis()); //Show timestamp
 
-  Serial.print(", Combination, ");
+  Serial.print(", Combo, ");
   Serial.print(discA);
   Serial.print("/");
   Serial.print(discB);
@@ -135,10 +135,10 @@ void nextCombination()
     while (1); //Freeze!
   }
 
-  Serial.print(", Handle position, ");
-  Serial.print(handlePosition);
+  //Serial.print(", Handle position, ");
+  //Serial.print(handlePosition);
 
-  Serial.print(", attempted, ");
+  Serial.print(", attempt, ");
   Serial.print(combinationsAttempted);
 
   float secondsPerTest = (float)(millis() - startTime) / 1000.0 / combinationsAttempted;

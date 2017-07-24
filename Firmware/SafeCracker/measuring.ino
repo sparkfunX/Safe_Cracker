@@ -96,7 +96,7 @@ void measureIndent(int &indentLocation, int &indentWidth, int &indentDepth)
   int edgeNear = 0;
 
   //Apply pressure to handle
-  handleServo.write(servoPressurePosition);
+  handleServo.write(servoHighPressurePosition);
   delay(timeServoApply); //Wait for servo to move
 
   //Spin until we hit the edge of the indent
@@ -116,7 +116,7 @@ void measureIndent(int &indentLocation, int &indentWidth, int &indentDepth)
   }
   setMotorSpeed(0); //Stop!
 
-  delay(100); //Allow motor to stop spinning
+  delay(timeMotorStop); //Allow motor to stop spinning
 
   //Add offset because we're switching directions and we need to take up
   //slack in the encoder
@@ -145,7 +145,7 @@ void measureIndent(int &indentLocation, int &indentWidth, int &indentDepth)
   }
   setMotorSpeed(0); //Stop!
 
-  delay(100); //Alow motor to stop spinning
+  delay(timeMotorStop); //Alow motor to stop spinning
 
   //Take a reading on how deep the handle got
   //handlePosition = averageAnalogRead(servoPosition);
@@ -176,7 +176,7 @@ void measureIndent(int &indentLocation, int &indentWidth, int &indentDepth)
   }
   setMotorSpeed(0); //Stop!
 
-  delay(100); //Alow motor to stop spinning
+  delay(timeMotorStop); //Alow motor to stop spinning
 
   //Take a reading on how deep the handle got
   //handlePosition = averageAnalogRead(servoPosition);

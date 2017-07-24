@@ -25,7 +25,7 @@ int gotoStep(int stepGoal, boolean addAFullRotation)
   //Coarse speed and window control how fast we arrive at the digit on the dial
   //Having too small of a window or too fast of an attack will make the dial
   //overshoot.
-  int coarseSpeed = 250; //Speed at which we get to coarse window (0-255). 150, 200 works. 210, 230 fails
+  int coarseSpeed = 255; //Speed at which we get to coarse window (0-255). 150, 200 works. 210, 230 fails
   int coarseWindow = 1250; //Once we are within this amount, switch to fine adjustment
   int fineSpeed = 50; //Less than 50 may not have enough torque
   int fineWindow = 32; //One we are within this amount, stop searching

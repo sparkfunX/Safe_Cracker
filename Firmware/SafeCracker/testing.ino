@@ -4,18 +4,17 @@
 
 //Spins the motor while we tweak the servo up/down to detect binding force and servo position
 //Press x to exit
-//How to use: Attach cracker to safe. As motor spins increase handle pressure using a/z until the gear binds in an indent.
-//Add 10 or 20 and this is servoPressurePosition global variable.
-//Add 40 or 50 and this is servoTryPosition.
-//*Remove* cracker from safe and adjust the servo up/down. Get the 3d printed handle to 45 degrees. The analog reading
-//is the handleOpenPosition global variable. If the handle gets this far then the door is considered open.
-//You want the hOP to be large enough to be different from just a try, but you want sTP to be not so large that
-//we stress the servo on every handle try.
+//How to use: Attach cracker to safe.
+//As motor spins increase handle pressure using a/z until the gear
+//just begins to rub
+//Move 10 away and then exit. This will be stored as servoRestPosition
+//servoTryPosition is stored as servoRestPosition - 50
+//servoPressurePosition is stored as servoRestPosition - 70
 void testServo()
 {
-  handleServo.attach(servo);
-
-  enableMotor(); //Turn on motor controller
+  Serial.println(F("x to exit"));
+  Serial.println(F("a to adjust servo to gear"));
+  Serial.println(F("z to adjust servo away from gear"));
 
   int servo = servoRestingPosition;
   handleServo.write(servo);
@@ -25,6 +24,8 @@ void testServo()
 
   turnCW();
   setMotorSpeed(50);
+
+  enableMotor(); //Turn on motor controller
 
   while (1)
   {
@@ -44,14 +45,14 @@ void testServo()
     {
       byte incoming = Serial.read();
 
-      if (incoming == 'a') servo += 5;
-      if (incoming == 'z') servo -= 5;
+      if (incoming == 'a') servo++;
+      if (incoming == 'z') servo--;
       if (incoming == 'x') //Exit
       {
         setMotorSpeed(0); //Stop!
         handleServo.write(servoRestingPosition); //Goto the resting position (handle horizontal, door closed)
         delay(timeServoRelease); //Allow servo to move
-        return;
+        break;
       }
 
       if (servo < 0) servo = 0;
@@ -70,6 +71,34 @@ void testServo()
 
     delay(100);
   }
+
+  //Record settings to EEPROM
+  servoRestingPosition = servo + 10; //We want some clearance 
+  servoTryPosition = servoRestingPosition - 50;
+  servoHighPressurePosition = servoRestingPosition - 60;
+
+  if (servoHighPressurePosition < 0 || servoTryPosition < 0)
+  {
+    Serial.println(F("servoPressurePosition or servoTryPosition is negative. Adjust servo higher."));
+    Serial.println(F("Freezing"));
+    while (1); //Freeze
+  }
+
+  EEPROM.put(LOCATION_SERVO_REST, servoRestingPosition);
+  EEPROM.put(LOCATION_SERVO_TEST_PRESSURE, servoTryPosition);
+  EEPROM.put(LOCATION_SERVO_HIGH_PRESSURE, servoHighPressurePosition);
+
+  Serial.print(F("servo: resting["));
+  Serial.print(servoRestingPosition);
+  Serial.print(F("] try["));
+  Serial.print(servoTryPosition);
+  Serial.print(F("] Highpressure["));
+  Serial.print(servoHighPressurePosition);
+  Serial.print(F("]"));
+  Serial.println();
+
+  Serial.println(F("Servo positions stored."));
+
 }
 
 //Pulls down on handle using current settings
@@ -128,9 +157,11 @@ void testHandleButton(void)
       pressedCounter++;
       Serial.print("Pressed! ");
       Serial.println(pressedCounter); //To have something that changes
+      delay(100);
     }
 
-    for(byte x = 0 ; x < 100 ; x++)
+    //Hang out for 100ms but scan button during that time
+    for (byte x = 0 ; x < 100 ; x++)
     {
       if (digitalRead(servoPositionButton) == LOW) break;
       delay(1);
