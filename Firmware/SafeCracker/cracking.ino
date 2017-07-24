@@ -17,9 +17,10 @@ void nextCombination()
   {
     discCAttempts = 0; //Reset count
 
-    boolean crossesA = checkCrossing(discB, -3, discA); //Check to see if the next B will cross A
-
-    if (crossesA == true) //disc B is exhauted, time to adjust discA
+    //The interference width of B to A is 11, meaning, if discB is at 40 and discA 
+    //is at 30, if you move discB to 37 it will cause discA to move by 4 (to 26).
+    boolean crossesA = checkCrossing(discB, -11, discA); //Check to see if the next B will cross A
+    if (crossesA == true) //disc B is exhausted, time to adjust discA
     {
       discA += 3; //Disc A changes by 3
       if (discA > 99) //This is the end case
@@ -47,39 +48,39 @@ void nextCombination()
     {
       //Serial.println("B: Adjust");
 
-      //long delta = millis() - startTime;
-      //startTime = millis(); //Reset startTime
-      //Serial.print("Time required to run discC: ");
-      //Serial.println(delta);
-
       //Adjust discB to this new value
       turnCW();
 
       discB -= 3; //Disc B changes by 3
       if (discB < 0) discB += 100;
 
-      if (abs(discB - discC) < 3) //Disc B is within the not moving tolerance
+      int discBIsAt = setDial(discB, false);
+      Serial.print("DiscB is at: ");
+      Serial.println(discBIsAt);
+      messagePause("Check dial position");
+
+      //You can't have a combo that is X-45-46: too close.
+      //There is a cross over point that comes when discB combo crosses
+      //Disc C. When DiscB is within 3 of discC, moving disc C will disrupt
+      //Disc B. Therefore, when you're this close skip the next B
+      boolean crossesB = checkCrossing(discC, 3, discB); //Check to see if the next B will cross A
+      if (crossesB == true) //We need to skip this test
       {
-        //We need to spin past disc C
-        //Turn 30 dial ticks CW away from here
-        int currentDial = convertEncoderToDial(steps);
-        currentDial -= 30;
-        if (currentDial < 0) currentDial += 100;
-        setDial(currentDial, false);
+        messagePause("skipping this discC");
+      }
+      else
+      {
+        discC = getNextIndent(discB); //Get the first indent after B
+
+        turnCCW();
+        int discCIsAt = setDial(discC, false);
+        //Serial.print("DiscC is at: ");
+        //Serial.println(discCIsAt);
+        //messagePause("Check dial position");
       }
 
-      int discBIsAt = setDial(discB, false);
-      //Serial.print("DiscB is at: ");
-      //Serial.println(discBIsAt);
-      //messagePause("Check dial position");
 
-      discC = getNextIndent(discB); //Get the first indent after B
 
-      turnCCW();
-      int discCIsAt = setDial(discC, false);
-      //Serial.print("DiscC is at: ");
-      //Serial.println(discCIsAt);
-      //messagePause("Check dial position");
     }
 
   }
@@ -128,7 +129,7 @@ void nextCombination()
     handleServo.write(servoRestingPosition);
     delay(timeServoRelease); //Allow servo to release. 200 was too short on new safe
 
-    while(1); //Freeze!
+    while (1); //Freeze!
   }
 
   Serial.print(", Handle position, ");
@@ -150,9 +151,10 @@ void nextCombination()
 //the cracker will try a combination with two same numbers (ie: 7/7/0)
 boolean checkCrossing(int currentSpot, int changeAmount, int checkSpot)
 {
+  //Look at each step as we make a theoretical move from current to the check location
   for (int x = 0 ; x < abs(changeAmount) ; x++)
   {
-    if (currentSpot == checkSpot) return (true);
+    if (currentSpot == checkSpot) return (true); //If we make this move it will disrupt the disc with checkSpot
 
     if (changeAmount < 0) currentSpot--;
     else currentSpot++;

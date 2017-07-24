@@ -46,24 +46,28 @@ int gotoStep(int stepGoal, boolean addAFullRotation)
   }
 
   setMotorSpeed(coarseSpeed); //Go!
-  //while (stepsRequired(steps, stepGoal) > coarseWindow) delayMicroseconds(10); //Spin until coarse window is closed
   while (stepsRequired(steps, stepGoal) > coarseWindow) ; //Spin until coarse window is closed
 
   //After we have gotten close to the first coarse window, proceed past the goal, then proceed to the goal
   if (addAFullRotation == true)
   {
-    delay(500); //This should spin us past the goal
-    while (stepsRequired(steps, stepGoal) > coarseWindow) delayMicroseconds(10); //Spin until coarse window is closed
+    int tempStepGoal = steps + 8400/2; //Move 50 away from current position
+    if (tempStepGoal > 8400) tempStepGoal -= 8400;
+    
+    //Go to temp position
+    while (stepsRequired(steps, tempStepGoal) > coarseWindow) ; 
+        
+    //Go to stepGoal
+    while (stepsRequired(steps, stepGoal) > coarseWindow) ; //Spin until coarse window is closed
   }
 
   setMotorSpeed(fineSpeed); //Slowly approach
 
-  //  while (stepsRequired(steps, stepGoal) > fineWindow) delayMicroseconds(10); //Spin until fine window is closed
   while (stepsRequired(steps, stepGoal) > fineWindow) ; //Spin until fine window is closed
 
   setMotorSpeed(0); //Stop
 
-  delay(200); //Wait for motor to stop
+  delay(timeMotorStop); //Wait for motor to stop
 
   int delta = steps - stepGoal;
 
@@ -96,11 +100,11 @@ int stepsRequired(int currentSteps, int goal)
     else if (currentSteps < goal) return (goal - currentSteps);
   }
 
-  Serial.println("stepRequired failed"); //We shouldn't get this far
-  Serial.print("Goal: ");
+  Serial.println(F("stepRequired failed")); //We shouldn't get this far
+  Serial.print(F("Goal: "));
   Serial.println(goal);
-  Serial.print("currentSteps: ");
-  Serial.print(currentSteps);
+  Serial.print(F("currentSteps: "));
+  Serial.println(currentSteps);
 
   return (0);
 }
@@ -175,12 +179,7 @@ void findFlag()
 //Set the discs to the current combinations (user selectable)
 void resetDiscsWithCurrentCombo(boolean pause)
 {
-  //Go to starting conditions
-  findFlag(); //Detect magnet and center the dial
-  delay(300);
-
   resetDial(); //Clear out everything
-  delay(300);
 
   //Set discs to this combo
   turnCCW();
@@ -196,11 +195,15 @@ void resetDiscsWithCurrentCombo(boolean pause)
   Serial.println(discBIsAt);
   if (pause == true) messagePause("Verify disc position");
 
+  //We don't need to set discC
+  //nextCombination() will do that for us
+  /*
   turnCCW();
   int discCIsAt = setDial(discC, false);
   Serial.print("DiscC is at: ");
   Serial.println(discCIsAt);
   if (pause == true) messagePause("Verify disc position");
+  */
 
   discCAttempts = -1; //Reset
 }
@@ -243,28 +246,21 @@ void resetDial()
 {
   turnCCW();
 
-  //If we're too close to zero, add 50
-  if (convertEncoderToDial(steps) > 97 || convertEncoderToDial(steps) < 4)
+  //Where ever we are, go 50 away, four times (two spins)
+  //Then continue to zero
+  for(byte x = 0 ; x < 4 ; x++)
   {
-    //Serial.println("We're too close to zero");
-    setDial(50, false); //Advance to 50 dial ticks away from here
-  }
-  previousDirection = CCW;
+    int nextSpot = convertEncoderToDial(steps); //Tell us our spot currently
 
-  setDial(0, true); //Turn to zero with an extra spin
+    nextSpot += 50;
+    if(nextSpot > 99) nextSpot -= 100;
 
-  //Second spin
-
-  //If we're too close to zero, add 50
-  if (convertEncoderToDial(steps) > 97 || convertEncoderToDial(steps) < 4)
-  {
-    //Serial.println("We're too close to zero");
-    setDial(50, false); //Advance to 50 dial ticks away from here
+    setDial(nextSpot, false); //Advance 50 ticks away
   }
 
-  previousDirection = CCW;
+  setDial(0, false); //Keep going until we get to zero
 
-  setDial(0, false); //Turn to zero
+  previousDirection = CCW;
 }
 
 //Tells the servo to pull down on the handle

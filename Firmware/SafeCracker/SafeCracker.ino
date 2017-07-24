@@ -41,21 +41,22 @@ const byte displayData = A4;
 
 //Servo values are found using the testServo() function while the
 //cracker was deattached from the safe
-//On the 1st configuration increasing numbers cause handle to go down
-//On the 2nd larger configuration, decreasing numbers cause handle to go down
 
 //Settings for 0.8 cubic ft. safe
+//On the 1st configuration increasing numbers cause handle to go down
 //const byte servoRestingPosition = 15; //Position not pulling/testing on handle
 //const byte servoPressurePosition = 50; //Position when doing indent measuring
 //const byte servoTryPosition = 80; //Position when testing handle
 
 //Settings for 1.2 cubic ft. safe
-const byte servoRestingPosition = 90; //Position not pulling/testing on handle
+//On the 2nd larger configuration, decreasing numbers cause handle to go down
+const byte servoRestingPosition = 100; //Position not pulling/testing on handle
 const byte servoPressurePosition = 40; //Position when doing indent measuring
 const byte servoTryPosition = 50; //Position when testing handle
 
 const int timeServoApply = 250;  //ms for servo to apply pressure. 300 was too short on new safe.
 const int timeServoRelease = 250;  //Allow servo to release. 200 was too short on new safe. The pull back spring affects this
+const int timeMotorStop = 200; //ms for motor to stop spinning after stop command
 
 int handlePosition; //Used to see how far handle moved when pulled on
 //const int handleOpenPosition = 187; //Analog value. Must be less than analog value from servo testing.
@@ -86,9 +87,13 @@ int switchDirectionAdjustment = (84 * 0) + 0; //Use 'Test dial control' to deter
 #define DISCC_START 0
 
 //These are the combination numbers we are attempting
-int discA = DISCA_START;
-int discB = DISCB_START;
-int discC = DISCC_START;
+//int discA = DISCA_START;
+//int discB = DISCB_START;
+//int discC = DISCC_START;
+
+int discA = 30; //Testing only. Don't use.
+int discB = 55;
+int discC = 47;
 
 //Keeps track of the combos we need to try for each disc
 //byte maxAAttempts = 33; //Assume solution notch is 3 digits wide
@@ -297,8 +302,7 @@ void loop()
     //Adjust steps with the real-world offset
     steps = (84 * homeOffset); //84 * the number the dial sits on when 'home'
 
-    setDial(0, true); //Turn to zero with an extra spin
-    //resetDial(); //Go to dial position zero
+    setDial(0, false); //Turn to zero
 
     Serial.println(F("Dial should be at: 0"));
   }
@@ -477,7 +481,7 @@ void loop()
     startTime = millis();
 
     //Set the discs to the current combinations (user can set if needed from menu)
-    resetDiscsWithCurrentCombo(false); //Do not pause with messages
+    resetDiscsWithCurrentCombo(true); //Do not pause with messages
 
     while (1)
     {
