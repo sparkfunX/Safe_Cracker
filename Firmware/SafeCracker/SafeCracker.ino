@@ -42,13 +42,13 @@ const byte displayData = A4;
 //Servo values are found using the testServo() function while the
 //cracker was deattached from the safe
 
-//Settings for 0.8 cubic ft. safe
+//Default settings for 0.8 cubic ft. safe
 //On the 1st configuration increasing numbers cause handle to go down
 //const byte servoRestingPosition = 15; //Position not pulling/testing on handle
 //const byte servoPressurePosition = 50; //Position when doing indent measuring
 //const byte servoTryPosition = 80; //Position when testing handle
 
-//Settings for 1.2 cubic ft. safe
+//Default settings for 1.2 cubic ft. safe
 //On the 2nd larger configuration, decreasing numbers cause handle to go down
 int servoRestingPosition = 100; //Position not pulling/testing on handle
 int servoTryPosition = 50; //Position when testing handle

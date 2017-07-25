@@ -17,34 +17,35 @@ void nextCombination()
   {
     discCAttempts = 0; //Reset count
 
-    //The interference width of B to A is 11, meaning, if discB is at 40 and discA 
+    //The interference width of B to A is 11, meaning, if discB is at 40 and discA
     //is at 30, if you move discB to 37 it will cause discA to move by 4 (to 26).
     boolean crossesA = checkCrossing(discB, -11, discA); //Check to see if the next B will cross A
     if (crossesA == true) //disc B is exhausted, time to adjust discA
     {
       discA += 3; //Disc A changes by 3
-      if (discA > 99) //This is the end case
+      if (discA > 99)
       {
-        Serial.println("Damn. We exhausted the combination domain. Try changing the center values.");
-        return;
+        discA -= 100;
+        Serial.println("Wrapping around zero.");
+        //By moving every three and wrapping around zero the
+        //safe will re-start but this time on a slightly different center (2 vs 0).
+        //The cracker should find solution first time around but this should
+        //increase the chance that it finds it on the 2nd search.
       }
-      else //Adjust discA, discB, discC
-      {
-        discB = discA - 3; //Reset discB
-        if (discB < 0) discB += 100;
 
-        discC = getNextIndent(discB); //Get the first indent after B
+      //Adjust discA, discB, discC
+      discB = discA - 3; //Reset discB
+      if (discB < 0) discB += 100;
 
-        Serial.println("Resetting dial...");
+      discC = getNextIndent(discB); //Get the first indent after B
 
-        findFlag(); //Re-home the dial between large finds
+      Serial.println("Resetting dial...");
 
-        //With this new A value, reset all discs
-        //resetDiscsWithCurrentCombo(true); //Do pauses to verify positions
-        resetDiscsWithCurrentCombo(false);
-        discCAttempts = 0; //Reset count
+      findFlag(); //Re-home the dial between large finds
 
-      }
+      //With this new A value, reset all discs
+      resetDiscsWithCurrentCombo(false);
+      discCAttempts = 0; //Reset count
     }
     else //Adjust discB and discC
     {
@@ -61,11 +62,31 @@ void nextCombination()
       //Serial.println(discBIsAt);
       //messagePause("Check dial position");
 
+      discC = getNextIndent(discB); //Get the first indent after B
+
+      turnCCW();
+
       //You can't have a combo that is X-45-46: too close.
       //There is a cross over point that comes when discB combo crosses
-      //Disc C. When DiscB is within 3 of discC, moving disc C will disrupt
-      //Disc B. Therefore, when you're this close skip the next B
-      boolean crossesB = checkCrossing(discC, 3, discB); //Check to see if the next B will cross A
+      //discC. When discC is within 3 of discB we must set discB then
+      //immediately try discC (no move), then move to next discB.
+      //This allows discC to continue correctly pushing discB around its
+      //test set.
+      if(abs(discB - discC) < 5) //C is too close to B
+      {
+        //Don't move C
+        //Serial.println("Not moving C this time");
+      }
+      else
+      {
+        //Move C
+        int discCIsAt = setDial(discC, false);
+        //Serial.print("DiscC is at: ");
+        //Serial.println(discCIsAt);
+        //messagePause("Check dial position");
+      }
+
+      /*boolean crossesB = checkCrossing(discC, 3, discB); //Check to see if the next B will cross A
       if (crossesB == true) //We need to skip this test
       {
         //Do nothing
@@ -73,19 +94,8 @@ void nextCombination()
       }
       else
       {
-        discC = getNextIndent(discB); //Get the first indent after B
-
-        turnCCW();
-        int discCIsAt = setDial(discC, false);
-        //Serial.print("DiscC is at: ");
-        //Serial.println(discCIsAt);
-        //messagePause("Check dial position");
-      }
-
-
-
+      }*/
     }
-
   }
   else //Adjust discC
   {
