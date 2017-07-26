@@ -55,7 +55,7 @@ int servoTryPosition = 50; //Position when testing handle
 int servoHighPressurePosition = 40; //Position when doing indent measuring
 
 const int timeServoApply = 350;  //ms for servo to apply pressure. 350 works
-const int timeServoRelease = 200;  //Allow servo to release. 250 works
+const int timeServoRelease = 250;  //Allow servo to release. 250 works
 const int timeMotorStop = 125; //ms for motor to stop spinning after stop command. 200 works
 
 int handlePosition; //Used to see how far handle moved when pulled on
@@ -159,7 +159,10 @@ void setup()
   Serial.println(F("Indent data"));
   for (int indentNumber = 0 ; indentNumber < 12 ; indentNumber++)
   {
+    //Load the yes/no for each indent To Try
     indentsToTry[indentNumber] = EEPROM.read(LOCATION_TEST_INDENT_0 + indentNumber); //Boolean
+    
+    //Get the encoder values for each indent
     EEPROM.get(LOCATION_INDENT_DIAL_0 + (indentNumber * 2), indentLocations[indentNumber]); //Addr, loc. Encoder click for a given indent
 
     Serial.print(F("IndentNum["));
@@ -198,7 +201,7 @@ void setup()
     servoHighPressurePosition = 40;
 
     //Record these defaults to EEPROM
-    EEPROM.put(LOCATION_SERVO_REST, servoRestingPosition);
+    EEPROM.put(LOCATION_SERVO_REST, servoRestingPosition); //addr, data
     EEPROM.put(LOCATION_SERVO_TEST_PRESSURE, servoTryPosition);
     EEPROM.put(LOCATION_SERVO_HIGH_PRESSURE, servoHighPressurePosition);
   }
@@ -235,7 +238,7 @@ void setup()
   setDial(0, false); //Make dial go to zero
 
   clearDisplay();
-  showCombination(24, 0, 66); //Display winning combination
+  showCombination(0, 0, 0); //Display zeroes
 }
 
 void loop()
@@ -417,7 +420,7 @@ void loop()
       else indentsToTry[indent] = true;
 
       //Record current settings to EEPROM
-      EEPROM.put(LOCATION_TEST_INDENT_0 + (indent * sizeof(byte)), indentsToTry[indent]);
+      EEPROM.put(LOCATION_TEST_INDENT_0 + indent, indentsToTry[indent]);
     }
 
     //Calculate how many indents we need to attempt on discC

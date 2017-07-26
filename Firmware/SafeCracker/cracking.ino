@@ -72,7 +72,7 @@ void nextCombination()
       //immediately try discC (no move), then move to next discB.
       //This allows discC to continue correctly pushing discB around its
       //test set.
-      if(abs(discB - discC) < 5) //C is too close to B
+      if(abs(discB - discC) < 4) //C is too close to B
       {
         //Don't move C
         //Serial.println("Not moving C this time");

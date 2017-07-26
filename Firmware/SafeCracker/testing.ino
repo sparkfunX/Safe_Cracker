@@ -74,7 +74,7 @@ void testServo()
 
   //Record settings to EEPROM
   servoRestingPosition = servo + 10; //We want some clearance 
-  servoTryPosition = servoRestingPosition - 50;
+  servoTryPosition = servoRestingPosition - 60;
   servoHighPressurePosition = servoRestingPosition - 60;
 
   if (servoHighPressurePosition < 0 || servoTryPosition < 0)
@@ -179,7 +179,7 @@ void positionTesting()
 {
   int randomDial;
 
-  for (int x = 0 ; x < 4 ; x++)
+  for (int x = 0 ; x < 2 ; x++)
   {
     randomDial = random(0, 100);
     randomDial = 25;

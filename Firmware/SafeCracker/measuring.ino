@@ -70,15 +70,20 @@ void measureDiscC(int numberOfTests)
 
   //Turn off all indents
   for (int x = 0 ; x < 12 ; x++)
-    indentsToTry[x] = false;
+  {
+    indentsToTry[x] = false; //Clear local array
+    EEPROM.put(LOCATION_TEST_INDENT_0 + x, false); //Record settings to EEPROM
+  }
 
   //Turn on the one largest indent
   indentsToTry[biggestIndent] = true;
+  EEPROM.put(LOCATION_TEST_INDENT_0 + biggestIndent, true); //Record settings to EEPROM
   Serial.println(F("Largest indent is now set to test"));
 
   //Record these indent values to EEPROM
   for (byte x = 0 ; x < 12 ; x++)
     EEPROM.put(LOCATION_INDENT_DIAL_0 + (x * 2), indentLocations[x]); //adr, data
+  
   Serial.println(F("Indent locations recorded to EEPROM"));
 
   messagePause("Press key to continue");
@@ -187,10 +192,8 @@ void measureIndent(int &indentLocation, int &indentWidth, int &indentDepth)
   int edgeFar2 = steps; //Take measurement
 
 
-  //Measurement complete
-  handleServo.write(servoRestingPosition); //Release servo
-  delay(timeServoRelease); //Allow servo to release. 200 was too short on new safe
 
+  //Measurement complete
   int sizeOfIndent;
   //if (edgeFar > edgeNear) sizeOfIndent = 8400 - edgeFar + edgeNear;
   //else sizeOfIndent = edgeNear - edgeFar;
@@ -198,29 +201,38 @@ void measureIndent(int &indentLocation, int &indentWidth, int &indentDepth)
   if (edgeFar2 > edgeNear) sizeOfIndent = 8400 - edgeFar2 + edgeNear;
   else sizeOfIndent = edgeNear - edgeFar2;
 
-  /*
-
-      Serial.print("edgeNear: ");
-      Serial.print(edgeNear);
-      Serial.print(" / ");
-      Serial.println(convertEncoderToDial(edgeNear));
-      Serial.print("edgeFar2: ");
-      Serial.print(edgeFar2);
-      Serial.print(" / ");
-      Serial.println(convertEncoderToDial(edgeFar2));
-
-        //Display where the center of this indent is on the dial
-        int centerOfIndent = sizeOfIndent / 2 + edgeFar;
-        Serial.print("centerOfIndent: ");
-        Serial.print(centerOfIndent);
-        Serial.print(" / ");
-        Serial.println(convertEncoderToDial(centerOfIndent));
-  */
-
   //indentDepth += handlePosition; //Record handle depth
   indentWidth += sizeOfIndent; //Record this value to what the user passed us
 
   indentLocation = edgeFar2 + (sizeOfIndent / 2); //Find center of indent
   if (indentLocation >= 8400) indentLocation -= 8400;
+
+
+  //Move away from edge of indent so we don't pinch the plunger
+  turnCCW();
+  previousDirection = CCW; //Last adjustment to dial was in CW direction
+
+  gotoStep(indentLocation, false); //Move to middle of this indent
+
+  handleServo.write(servoRestingPosition); //Release servo
+  delay(timeServoRelease * 2); //Give servo extra time to release because we are using extra pressure
+
+  /*
+       Serial.print("edgeNear: ");
+       Serial.print(edgeNear);
+       Serial.print(" / ");
+       Serial.println(convertEncoderToDial(edgeNear));
+       Serial.print("edgeFar2: ");
+       Serial.print(edgeFar2);
+       Serial.print(" / ");
+       Serial.println(convertEncoderToDial(edgeFar2));
+
+         //Display where the center of this indent is on the dial
+         int centerOfIndent = sizeOfIndent / 2 + edgeFar;
+         Serial.print("centerOfIndent: ");
+         Serial.print(centerOfIndent);
+         Serial.print(" / ");
+         Serial.println(convertEncoderToDial(centerOfIndent));
+  */
 }
 

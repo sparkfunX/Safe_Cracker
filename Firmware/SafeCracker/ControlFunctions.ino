@@ -191,15 +191,12 @@ void resetDiscsWithCurrentCombo(boolean pause)
   Serial.println(discBIsAt);
   if (pause == true) messagePause("Verify disc position");
 
-  //We don't need to set discC
-  //nextCombination() will do that for us
-  /*
   turnCCW();
   int discCIsAt = setDial(discC, false);
   Serial.print("DiscC is at: ");
   Serial.println(discCIsAt);
   if (pause == true) messagePause("Verify disc position");
-  */
+  
 
   discCAttempts = -1; //Reset
 }
